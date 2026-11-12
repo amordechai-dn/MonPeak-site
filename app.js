@@ -1,5 +1,5 @@
-import {getFieldHelp,getResultHelp} from './help-content.js?v=1.8.3';
-import {money,invest,freedom,loan,mortgage,goalPlan} from './finance.js?v=1.8.3';
+import {getFieldHelp,getResultHelp} from './help-content.js?v=1.8.4';
+import {money,invest,freedom,loan,mortgage,goalPlan} from './finance.js?v=1.8.4';
 const icons={compound:'↗',freedom:'☀',goal:'⚑',property:'⌂',loan:'⇄'};
 const tools={compound:{title:'ריבית דריבית',short:'ריבית דריבית',desc:'צמיחת חיסכון לאורך זמן.',initial:50000,monthly:3000,years:20,rate:8,assetFee:.5,depositFee:0,feesEnabled:true,tax:25},freedom:{title:'חופש כלכלי',short:'חופש כלכלי',desc:'הון נדרש להכנסה חודשית.',age:30,targetAge:55,initial:100000,monthly:5000,income:10000,withdrawal:4,rate:8,assetFee:.5,depositFee:0,feesEnabled:true,tax:25},goal:{title:'יעד כספי',short:'יעד כספי',desc:'כמה צריך לחסוך בכל חודש כדי להגיע ליעד?',target:100000,years:3,initial:20000,rate:4,inflation:1.6,tax:25,taxEnabled:true,goalModel:'cash-v2'},property:{title:'נדל״ן ומשכנתא',short:'נדל״ן ומשכנתא',desc:'הון עצמי, תשלומים ומשכנתא.',price:2000000,buyer:'single',equity:500000,costs:0,upfront:20,delivery:3,linkShare:0,buildIndex:2,years:25,mix:'thirds',fixedShare:34,indexShare:33,fixed:4.89,indexed:3.54,prime:4.75,spread:0,inflation:2,income:20000,obligations:0,bridge:0,bridgeRate:6,subsidy:0,saving:2000,savingRate:8,assetFee:.5,depositFee:0,feesEnabled:true,tax:25,stress:0},loan:{title:'מחשבון הלוואות',short:'החזר הלוואה',desc:'החזר חודשי ועלות הריבית.',amount:50000,years:5,rate:8,rateType:'nominal',method:'spitzer',variable:'no',reset:12,change:0,setup:0,monthlyFee:0}};
 const labels={initial:'יתרה התחלתית',monthly:'הפקדה חודשית',years:'תקופה בשנים',rate:'תשואה שנתית צפויה',assetFee:'דמי ניהול מצבירה',depositFee:'דמי ניהול מהפקדה',tax:'מס על הרווח',age:'גיל נוכחי',targetAge:'גיל יעד',income:'הכנסה חודשית רצויה נטו',withdrawal:'שיעור משיכה שנתי',target:'עלות היעד כיום',priceGrowth:'עליית מחיר היעד בשנה',price:'מחיר הדירה',equity:'הון עצמי קיים',costs:'הוצאות רכישה נוספות',upfront:'תשלום בחתימה',delivery:'שנים עד המסירה',linkShare:'חלק מהיתרה הצמוד לתשומות בנייה',buildIndex:'עליית מדד תשומות בנייה בשנה',fixed:'ריבית קל״צ',indexed:'ריבית צמודת מדד',prime:'ריבית פריים בסיס',spread:'מרווח מהפריים',inflation:'אינפלציה שנתית להמחשה',obligations:'התחייבויות חודשיות קבועות',bridge:'סכום הלוואת בלון',bridgeRate:'ריבית שנתית לבלון',subsidy:'אחוז הריבית שהקבלן משלם',saving:'חיסכון חודשי עד המסירה',savingRate:'תשואה על החיסכון עד המסירה',stress:'תוספת ריבית לתרחיש',fixedShare:'חלק הקל״צ בתמהיל',indexShare:'חלק המסלול הצמוד',amount:'סכום ההלוואה',reset:'שינוי ריבית כל כמה חודשים',change:'שינוי ריבית בכל תחנה',setup:'עמלה חד־פעמית',monthlyFee:'עמלה חודשית'};
@@ -129,11 +129,11 @@ function calculate(){const form=$('#calculator');syncFeeControls();syncTaxContro
  if(active==='compound'){
  const same=(a,b)=>Math.abs(a-b)<0.5;
  const outcomes=[];
- if(!same(r.gross,r.net))outcomes.push(card('ברוטו',money(r.gross),r.hasFees?'לפני דמי ניהול ומס':'לפני מס'));
- if(!same(r.balance,r.gross)&&!same(r.balance,r.net))outcomes.push(card('אחרי דמי ניהול',money(r.balance),'לפני מס רווחי הון',false,'after-fees'));
- outcomes.push(card('נטו ביד',money(r.net),r.hasFees?(r.tax>0?'אחרי דמי ניהול ומס':'אחרי דמי ניהול, ללא מס לתשלום'):(r.tax>0?'אחרי מס רווחי הון':'ללא דמי ניהול ומס לתשלום'),true));
- legend=`<h3 class="compound-outcome-heading">שווי התיק בסוף התקופה</h3><section class="outcome-comparison compound-comparison" style="--outcome-count:${outcomes.length}" aria-label="השוואת הסכום בסוף התקופה">${outcomes.join('')}</section>`;
- metrics=`<div class="contributions-line"><span class="metric-label"><span>סך ההפקדות</span>${helpButton('סך ההפקדות','סך ההפקדות','result')}</span><strong>${money(r.paid)}</strong></div>`;
+ if(!same(r.gross,r.net))outcomes.push(compoundOutcomeCard('שווי תיק ברוטו',r.gross,'רווח ברוטו',r.gross-r.paid));
+ if(!same(r.balance,r.gross)&&!same(r.balance,r.net))outcomes.push(compoundOutcomeCard('שווי תיק אחרי דמי ניהול',r.balance,'רווח אחרי דמי ניהול',r.balance-r.paid,'after-fees'));
+ outcomes.push(compoundOutcomeCard('שווי תיק נטו',r.net,'רווח נטו',r.net-r.paid,'accent'));
+ const contributions=`<div class="contributions-line"><span class="metric-label"><span>סך ההפקדות</span>${helpButton('סך ההפקדות','סך ההפקדות','result')}</span><strong>${money(r.paid)}</strong></div>`;
+ legend=`${contributions}<section class="outcome-comparison compound-comparison" style="--outcome-count:${outcomes.length}" aria-label="שווי התיק והרווח בסוף התקופה">${outcomes.join('')}</section>`;
  const uniqueKeys=[];
  for(const series of [...chartKeys].reverse())if(!uniqueKeys.some(([key])=>r.rows.every(row=>same(row[key],row[series[0]]))))uniqueKeys.unshift(series);
  chartKeys=uniqueKeys;
@@ -145,9 +145,13 @@ function calculate(){const form=$('#calculator');syncFeeControls();syncTaxContro
  $('#resultBody').innerHTML=`<div class="result-toolbar"><button id="save" class="text-button">＋ שמירת תרחיש</button></div>${['compound','freedom','goal'].includes(active)?legend:''}${active==='compound'?metrics:`<div class="metrics supporting-metrics">${metrics}</div>`}${['compound','freedom','goal'].includes(active)?'':legend}${comparisonHTML()}${insight?`<div class="insight"><span>✦</span><p>${insight}</p></div>`:""}<section class="chart-panel"><div class="panel-heading"><h3>${active==='loan'||active==='property'?'איך היתרה יורדת לאורך הזמן':'איך התוכנית שלך גדלה'}</h3><button class="text-button" id="export">הורדת CSV</button></div>${chart(lastRows,chartKeys)}<div class="chart-legend" aria-label="קווים בגרף">${chartKeys.map(([key,name,color])=>chartKeys.length>1?`<button type="button" class="chart-key" data-series="${key}" aria-pressed="true" aria-label="הצגת ${name}"><i style="background:${color}" aria-hidden="true"></i><span>${name}</span></button>`:`<span><i style="background:${color}" aria-hidden="true"></i>${name}</span>`).join('')}</div></section>${active==='compound'?compoundDetails(r):''}<details class="table-panel"><summary>פירוט החישוב ${active==='loan'||active==='property'?'לפי חודש':'לפי שנה'}</summary><div class="table-scroll">${table}</div></details>`;
  fitCurrencyValues();initChart(lastRows,chartKeys);$('#save').onclick=saveScenario;$('#export').onclick=exportCSV;}
 
+function compoundOutcomeCard(label,value,profitLabel,profit,kind=''){
+ return `<article class="metric compound-outcome ${kind}"><span class="metric-label"><span>${label}</span>${helpButton(label,label,'result')}</span><strong class="money-value">${money(value)}</strong><div class="outcome-profit"><span class="metric-label"><span>${profitLabel}</span>${helpButton(profitLabel,profitLabel,'result')}</span><strong class="money-value">${money(profit)}</strong></div></article>`;
+}
+
 function compoundDetails(r){
  const row=(label,value,help='')=>`<div><dt>${label}${help?helpButton(help,label,'result'):''}</dt><dd>${money(value)}</dd></div>`;
- return `<details class="table-panel compound-details"><summary>פירוט רווח, מס ודמי ניהול</summary><dl>${row('רווח בלבד, ללא ההפקדות',r.profit,r.hasFees?'רווח אחרי דמי ניהול':'רווח ברוטו')}${row('מס משוער במימוש',r.tax,'מס משוער במימוש')}${r.hasFees?row('דמי ניהול מהפקדות',r.depositFees)+row('דמי ניהול מצבירה',r.assetFees)+row('השפעת דמי הניהול על היתרה',r.gross-r.balance):''}</dl>${r.hasFees?'<p class="small-text">ההשפעה על היתרה כוללת את דמי הניהול ואת התשואה שלא נצברה עליהם.</p>':''}</details>`;
+ return `<details class="table-panel compound-details"><summary>פירוט מס ודמי ניהול</summary><dl>${row('מס משוער במימוש',r.tax,'מס משוער במימוש')}${r.hasFees?row('דמי ניהול מהפקדות',r.depositFees)+row('דמי ניהול מצבירה',r.assetFees)+row('השפעת דמי הניהול על היתרה',r.gross-r.balance):''}</dl>${r.hasFees?'<p class="small-text">ההשפעה על היתרה כוללת את דמי הניהול ואת התשואה שלא נצברה עליהם.</p>':''}</details>`;
 }
 
 function renderGoalResult(p){
