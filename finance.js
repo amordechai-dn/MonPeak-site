@@ -1,5 +1,5 @@
 export const money = n => new Intl.NumberFormat('he-IL',{style:'currency',currency:'ILS',maximumFractionDigits:0}).format(n);
-export function invest({initial=0,monthly=0,years=20,rate=6,assetFee,depositFee=0,feesEnabled=true,fee=.5,tax=25,taxEnabled=true}) {
+export function invest({initial=0,monthly=0,years=20,rate=6,assetFee,depositFee=0,feesEnabled=true,fee=.5,tax=25,taxEnabled=true,rowInterval=12}) {
  // The initial balance is already invested. Deposit fees apply to new monthly payments.
  const annualAssetFee=feesEnabled?(assetFee??fee):0;
  const contributionFee=feesEnabled?depositFee:0;
@@ -15,7 +15,7 @@ export function invest({initial=0,monthly=0,years=20,rate=6,assetFee,depositFee=
   const assetCharge=balance*growth*(1-cost),depositCharge=monthly*contributionFee/100;
   assetFees+=assetCharge;depositFees+=depositCharge;
   balance=balance*growth*cost+monthly-depositCharge;paid+=monthly;
-  if(m%12===0||m===months){const t=Math.max(0,balance-paid)*taxRate/100;rows.push({year:m/12,paid,gross,balance,net:balance-t,tax:t,fees:assetFees+depositFees,assetFees,depositFees});}
+  if(m%rowInterval===0||m===months){const t=Math.max(0,balance-paid)*taxRate/100;rows.push({year:m/12,paid,gross,balance,net:balance-t,tax:t,fees:assetFees+depositFees,assetFees,depositFees});}
  }
  const t=Math.max(0,balance-paid)*taxRate/100;
  return {gross,balance,paid,assetFees,depositFees,fees:assetFees+depositFees,tax:t,net:balance-t,profit:balance-paid,hasFees,rows};
@@ -29,9 +29,27 @@ export function requiredSaving(target,params){
  for(let i=0;i<65;i++){const m=(lo+hi)/2;if(invest({...params,monthly:m}).net<target)lo=m;else hi=m;}
  return hi;
 }
-export function freedom(p){const target=p.income*12/(p.withdrawal/100); const years=p.targetAge-p.age;const result=invest({...p,years});let reached=null;
- for(let m=0;m<=Math.max(0,(110-p.age)*12);m++){if(invest({...p,years:m/12}).net>=target){reached=p.age+m/12;break;}}
- return {...result,target,reached,required:requiredSaving(target,{...p,years}),monthlyIncome:result.net*p.withdrawal/100/12};}
+// Proportional gain allocation is a planning assumption, not security-lot tax accounting.
+export function retirementIncome(balance,paid,withdrawal,tax=25,taxEnabled=true){
+ const gainShare=balance>0?Math.max(0,balance-paid)/balance:0;
+ const retention=1-(taxEnabled?tax/100:0)*gainShare;
+ const monthlyGross=balance*withdrawal/100/12;
+ return {monthlyGross,monthlyTax:monthlyGross*(1-retention),monthlyIncome:monthlyGross*retention,retention};
+}
+export function freedom(p){
+ const target=p.income*12/(p.withdrawal/100),years=p.targetAge-p.age;
+ const result=invest({...p,years});
+ const income=retirementIncome(result.balance,result.paid,p.withdrawal,p.tax,p.taxEnabled);
+ const projection=invest({...p,years:Math.max(0,110-p.age),rowInterval:1});
+ const reachedRow=projection.rows.find(row=>retirementIncome(row.balance,row.paid,p.withdrawal,p.tax,p.taxEnabled).monthlyIncome+1e-8>=p.income);
+ const reachedMonths=reachedRow?Math.round(reachedRow.year*12):null;
+ const reached=reachedMonths===null?null:p.age+reachedMonths/12;
+ const endMonth=Math.max(Math.round(years*12),reachedMonths??Math.round((110-p.age)*12));
+ const projectionRows=projection.rows.filter(row=>{
+  const m=Math.round(row.year*12);return m<=endMonth&&(m%12===0||m===endMonth||m===reachedMonths||m===Math.round(years*12));
+ }).map(row=>{const flow=retirementIncome(row.balance,row.paid,p.withdrawal,p.tax,p.taxEnabled);return {...row,age:p.age+row.year,requiredCapital:target/flow.retention,monthlyIncome:flow.monthlyIncome};});
+ return {...result,target,reached,reachedMonths,required:requiredSaving(target,{...p,years}),...income,requiredCapital:target/income.retention,projectionRows};
+}
 export function payment(principal,monthlyRate,months){if(!months)return principal;return Math.abs(monthlyRate)<1e-12?principal/months:principal*monthlyRate/(1-(1+monthlyRate)**(-months));}
 export function loan({amount,years,rate=8,rateType='nominal',method='spitzer',inflation=0,setup=0,monthlyFee=0,reset=12,change=0,variable=false}){
  const n=Math.round(years*12);let balance=amount,totalInterest=0,totalIndex=0,total=setup,rows=[],max=0,first=0;
