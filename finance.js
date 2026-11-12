@@ -5,7 +5,9 @@ export function invest({initial=0,monthly=0,years=20,rate=6,assetFee,depositFee=
  const contributionFee=feesEnabled?depositFee:0;
  const taxRate=taxEnabled?tax:0;
  const hasFees=annualAssetFee>0||contributionFee>0;
- const months=Math.round(years*12),growth=(1+rate/100)**(1/12),cost=(1-annualAssetFee/100)**(1/12);
+ // Quoted annual asset fee is prorated monthly, not treated as an effective annual loss.
+ // Return and asset fee apply before each end-of-month contribution.
+ const months=Math.round(years*12),growth=(1+rate/100)**(1/12),cost=1-annualAssetFee/1200;
  let gross=initial,balance=initial,paid=initial,assetFees=0,depositFees=0;
  const rows=[{year:0,paid,gross,balance,net:initial,tax:0,fees:0,assetFees:0,depositFees:0}];
  for(let m=1;m<=months;m++) {
