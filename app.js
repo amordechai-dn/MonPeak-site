@@ -1,4 +1,4 @@
-import {money,invest,freedom,requiredSaving,loan,mortgage} from './finance.js?v=1.2.2';
+import {money,invest,freedom,requiredSaving,loan,mortgage} from './finance.js?v=1.2.3';
 const icons={compound:'↗',freedom:'☀',goal:'⚑',property:'⌂',loan:'⇄'};
 const tools={compound:{title:'ריבית דריבית',short:'ריבית דריבית',desc:'צמיחת חיסכון לאורך זמן.',initial:50000,monthly:3000,years:20,rate:6,fee:.5,tax:25},freedom:{title:'חופש כלכלי',short:'חופש כלכלי',desc:'הון נדרש להכנסה חודשית.',age:30,targetAge:55,initial:100000,monthly:5000,income:10000,withdrawal:4,rate:6,fee:.5,tax:25},goal:{title:'יעד כספי',short:'יעד כספי',desc:'חיסכון חודשי להשגת יעד.',target:100000,years:5,initial:20000,monthly:2000,priceGrowth:2,rate:6,fee:.5,tax:25},property:{title:'נדל״ן ומשכנתא',short:'נדל״ן ומשכנתא',desc:'הון עצמי, תשלומים ומשכנתא.',price:2000000,buyer:'single',equity:500000,costs:0,upfront:20,delivery:3,linkShare:0,buildIndex:2,years:25,mix:'thirds',fixedShare:34,indexShare:33,fixed:4.89,indexed:3.54,prime:4.75,spread:0,inflation:2,income:20000,obligations:0,bridge:0,bridgeRate:6,subsidy:0,saving:2000,savingRate:3,fee:.5,tax:25,stress:0},loan:{title:'מחשבון הלוואות',short:'החזר הלוואה',desc:'החזר חודשי ועלות הריבית.',amount:50000,years:5,rate:8,rateType:'nominal',method:'spitzer',variable:'no',reset:12,change:0,setup:0,monthlyFee:0}};
 const labels={initial:'סכום התחלתי',monthly:'הפקדה חודשית',years:'תקופה בשנים',rate:'תשואה שנתית צפויה',fee:'דמי ניהול שנתיים',tax:'מס על הרווח',age:'גיל נוכחי',targetAge:'גיל יעד',income:'הכנסה חודשית רצויה נטו',withdrawal:'שיעור משיכה שנתי',target:'עלות היעד כיום',priceGrowth:'עליית מחיר היעד בשנה',price:'מחיר הדירה',equity:'הון עצמי קיים',costs:'הוצאות רכישה נוספות',upfront:'תשלום בחתימה',delivery:'שנים עד המסירה',linkShare:'חלק מהיתרה הצמוד לתשומות בנייה',buildIndex:'עליית מדד תשומות בנייה בשנה',fixed:'ריבית קל״צ',indexed:'ריבית צמודת מדד',prime:'ריבית פריים בסיס',spread:'מרווח מהפריים',inflation:'אינפלציה שנתית להמחשה',obligations:'התחייבויות חודשיות קבועות',bridge:'סכום הלוואת בלון',bridgeRate:'ריבית שנתית לבלון',subsidy:'אחוז הריבית שהקבלן משלם',saving:'חיסכון חודשי עד המסירה',savingRate:'תשואה על החיסכון עד המסירה',stress:'תוספת ריבית לתרחיש',fixedShare:'חלק הקל״צ בתמהיל',indexShare:'חלק המסלול הצמוד',amount:'סכום ההלוואה',reset:'שינוי ריבית כל כמה חודשים',change:'שינוי ריבית בכל תחנה',setup:'עמלה חד־פעמית',monthlyFee:'עמלה חודשית'};
@@ -39,36 +39,28 @@ function persist(){try{localStorage.setItem('monpeak-saved',JSON.stringify(saved
 function saveScenario(){if(saved.length>=30){toast('ניתן לשמור עד 30 תרחישים. מחק תרחיש ישן כדי להוסיף חדש.');return;}const s={id:Date.now(),tool:active,data:{...states[active]},date:new Date().toLocaleDateString('he-IL')};saved.push(s);if(persist())toast('התרחיש נשמר');else saved.pop();}
 function toast(msg){$('#toast').textContent=msg;$('#toast').classList.add('visible');setTimeout(()=>$('#toast').classList.remove('visible'),3500);}
 const motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
-let navigationEpoch=0,pageAnimation=null,dialogEpoch=0,dialogAnimation=null,dialogClosing=null;
-async function navigate({scroll=true,focus=true}={}){
- const epoch=++navigationEpoch,main=$('#main');pageAnimation?.cancel();
- if(!motionPreference.matches){
-  pageAnimation=main.animate([{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-5px)'}],{duration:100,easing:'ease-in',fill:'both'});
-  await pageAnimation.finished.catch(()=>{});
-  if(epoch!==navigationEpoch)return;
- }
+let pageAnimation=null,dialogEpoch=0,dialogAnimation=null,dialogClosing=null;
+function navigate({scroll=true,focus=true}={}){
+ pageAnimation?.cancel();
  render();
  if(scroll){const previous=document.documentElement.style.scrollBehavior;document.documentElement.style.scrollBehavior='auto';window.scrollTo(0,0);document.documentElement.style.scrollBehavior=previous;}
- if(focus)main.focus({preventScroll:true});
- pageAnimation?.cancel();
- if(!motionPreference.matches){
-  pageAnimation=main.animate([{opacity:0,transform:'translateY(9px)'},{opacity:1,transform:'translateY(0)'}],{duration:230,easing:'cubic-bezier(.2,.7,.2,1)',fill:'both'});
-  await pageAnimation.finished.catch(()=>{});
-  if(epoch===navigationEpoch){pageAnimation.cancel();pageAnimation=null;}
- }
+ if(focus)$('#main').focus({preventScroll:true});
+ const heading=document.querySelector('.calc-heading, .hero-copy');
+ pageAnimation=null;
+ if(heading&&!motionPreference.matches)pageAnimation=heading.animate([{transform:'translateY(4px)'},{transform:'translateY(0)'}],{duration:140,easing:'ease-out'});
 }
 function openSavedDialog(){
  const dialog=$('#savedDialog');if(dialog.open&&!dialog.classList.contains('is-closing'))return;
  ++dialogEpoch;dialogAnimation?.cancel();dialogClosing=null;dialog.classList.remove('is-closing');
  if(!dialog.open)dialog.showModal();
- if(!motionPreference.matches)dialogAnimation=dialog.animate([{opacity:0,transform:'translateY(14px) scale(.98)'},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:240,easing:'cubic-bezier(.2,.7,.2,1)'});
+ if(!motionPreference.matches)dialogAnimation=dialog.animate([{transform:'translateY(6px)'},{transform:'translateY(0)'}],{duration:150,easing:'cubic-bezier(.2,.7,.2,1)'});
 }
 function closeSavedDialog(){
  const dialog=$('#savedDialog');if(!dialog.open)return Promise.resolve();if(dialogClosing)return dialogClosing;
  const epoch=++dialogEpoch;dialogAnimation?.cancel();
  if(motionPreference.matches){dialog.close();return Promise.resolve();}
  dialog.classList.add('is-closing');
- dialogAnimation=dialog.animate([{opacity:1,transform:'translateY(0) scale(1)'},{opacity:0,transform:'translateY(8px) scale(.985)'}],{duration:160,easing:'ease-in',fill:'both'});
+ dialogAnimation=dialog.animate([{transform:'translateY(0)'},{transform:'translateY(4px)'}],{duration:100,easing:'ease-in',fill:'both'});
  dialogClosing=dialogAnimation.finished.catch(()=>{}).then(()=>{if(epoch!==dialogEpoch)return;dialog.close();dialog.classList.remove('is-closing');dialogAnimation.cancel();dialogAnimation=null;dialogClosing=null;});
  return dialogClosing;
 }
