@@ -84,3 +84,5 @@ body{font-size:16px;line-height:1.65}nav a{font-size:14px}.quiet,.text-button,.p
 .retirement-caption{display:flex;align-items:center;gap:8px;font-size:15px;color:#536249;margin-top:14px}.retirement-caption i{width:9px;height:9px;background:#253e31;border-radius:50%;box-shadow:0 0 0 3px #253e3114}.retirement-caption b{color:#253e31;font-weight:500}.freedom-chart-unit{direction:ltr;text-align:left;font-size:14px;color:#627056;margin:16px 0 -14px}.freedom-chart .chart-timeline{gap:4px;font-size:14px}.freedom-chart .chart-timeline span{white-space:nowrap}.freedom-chart .chart{overflow:visible}
 
 .tax-field-heading{display:flex;align-items:center;gap:5px}.tax-field-heading label{cursor:pointer}.tax-section .fee-fields{grid-template-columns:1fr}.tax-section .fee-heading{gap:10px;flex-wrap:nowrap}.tax-section .tax-field-heading{flex:1;min-width:0}.tax-field-heading label{min-width:0}
+
+.goal-breakdown{margin:0 0 18px}.goal-workspace input[type="month"]{width:100%;min-width:0;direction:rtl;padding-inline:12px}.goal-workspace .tax-section .select-field{margin-top:4px}

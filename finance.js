@@ -71,7 +71,7 @@ export function mortgage(p){const ltv={single:.75,replacement:.7,investment:.5}[
 
 // Legacy net-return scenarios and cash-fund scenarios share the target solver.
 // Cash-fund returns are after fund fees; personal tax applies to real gains at redemption.
-export function goalPlan({target=100000,initial=20000,years=3,rate=4,inflation=0,tax=25,taxEnabled=true,goalModel='cash-v2'}={}){
+export function goalPlan({target=100000,initial=20000,years=3,rate=4,inflation=0,tax=25,taxEnabled=true,taxBasis='real',goalModel='cash-v2'}={}){
  const months=Math.max(1,Math.round(years*12)),futureTarget=target*(1+inflation/100)**(months/12);
  const params={initial,years:months/12,rate,tax:0,feesEnabled:false};
  function project(monthly,keepRows=false){
@@ -80,7 +80,7 @@ export function goalPlan({target=100000,initial=20000,years=3,rate=4,inflation=0
   let balance=initial,paid=initial,indexedBasis=initial,levy=0;const rows=keepRows?[{year:0,paid,gross:balance,balance,net:balance,tax:0}]:[];
   for(let m=1;m<=months;m++){
    balance=balance*growth+monthly;indexedBasis=indexedBasis*index+monthly;paid+=monthly;
-   levy=Math.max(0,balance-Math.max(paid,indexedBasis))*taxRate;
+   levy=Math.max(0,balance-(taxBasis==='nominal'?paid:Math.max(paid,indexedBasis)))*taxRate;
    if(keepRows&&(m%12===0||m===months))rows.push({year:m/12,paid,gross:balance,balance,net:balance-levy,tax:levy});
   }
   return {gross:balance,balance,paid,net:balance-levy,tax:levy,fees:0,assetFees:0,depositFees:0,profit:balance-paid,rows};
