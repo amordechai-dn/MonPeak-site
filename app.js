@@ -1,4 +1,4 @@
-import {money,invest,freedom,loan,mortgage,goalPlan} from './finance.js?v=1.5.0';
+import {money,invest,freedom,loan,mortgage,goalPlan} from './finance.js?v=1.5.1';
 const icons={compound:'↗',freedom:'☀',goal:'⚑',property:'⌂',loan:'⇄'};
 const tools={compound:{title:'ריבית דריבית',short:'ריבית דריבית',desc:'צמיחת חיסכון לאורך זמן.',initial:50000,monthly:3000,years:20,rate:8,assetFee:.5,depositFee:0,feesEnabled:true,tax:25},freedom:{title:'חופש כלכלי',short:'חופש כלכלי',desc:'הון נדרש להכנסה חודשית.',age:30,targetAge:55,initial:100000,monthly:5000,income:10000,withdrawal:4,rate:8,assetFee:.5,depositFee:0,feesEnabled:true,tax:25},goal:{title:'יעד כספי',short:'יעד כספי',desc:'כמה צריך לחסוך בכל חודש כדי להגיע ליעד?',target:100000,years:3,initial:20000,rate:3,goalModel:'net-v1'},property:{title:'נדל״ן ומשכנתא',short:'נדל״ן ומשכנתא',desc:'הון עצמי, תשלומים ומשכנתא.',price:2000000,buyer:'single',equity:500000,costs:0,upfront:20,delivery:3,linkShare:0,buildIndex:2,years:25,mix:'thirds',fixedShare:34,indexShare:33,fixed:4.89,indexed:3.54,prime:4.75,spread:0,inflation:2,income:20000,obligations:0,bridge:0,bridgeRate:6,subsidy:0,saving:2000,savingRate:8,assetFee:.5,depositFee:0,feesEnabled:true,tax:25,stress:0},loan:{title:'מחשבון הלוואות',short:'החזר הלוואה',desc:'החזר חודשי ועלות הריבית.',amount:50000,years:5,rate:8,rateType:'nominal',method:'spitzer',variable:'no',reset:12,change:0,setup:0,monthlyFee:0}};
 const labels={initial:'יתרה התחלתית',monthly:'הפקדה חודשית',years:'תקופה בשנים',rate:'תשואה שנתית צפויה',assetFee:'דמי ניהול מצבירה — שנתי',depositFee:'דמי ניהול מהפקדה',tax:'מס על הרווח',age:'גיל נוכחי',targetAge:'גיל יעד',income:'הכנסה חודשית רצויה נטו',withdrawal:'שיעור משיכה שנתי',target:'עלות היעד כיום',priceGrowth:'עליית מחיר היעד בשנה',price:'מחיר הדירה',equity:'הון עצמי קיים',costs:'הוצאות רכישה נוספות',upfront:'תשלום בחתימה',delivery:'שנים עד המסירה',linkShare:'חלק מהיתרה הצמוד לתשומות בנייה',buildIndex:'עליית מדד תשומות בנייה בשנה',fixed:'ריבית קל״צ',indexed:'ריבית צמודת מדד',prime:'ריבית פריים בסיס',spread:'מרווח מהפריים',inflation:'אינפלציה שנתית להמחשה',obligations:'התחייבויות חודשיות קבועות',bridge:'סכום הלוואת בלון',bridgeRate:'ריבית שנתית לבלון',subsidy:'אחוז הריבית שהקבלן משלם',saving:'חיסכון חודשי עד המסירה',savingRate:'תשואה על החיסכון עד המסירה',stress:'תוספת ריבית לתרחיש',fixedShare:'חלק הקל״צ בתמהיל',indexShare:'חלק המסלול הצמוד',amount:'סכום ההלוואה',reset:'שינוי ריבית כל כמה חודשים',change:'שינוי ריבית בכל תחנה',setup:'עמלה חד־פעמית',monthlyFee:'עמלה חודשית'};
@@ -27,21 +27,28 @@ function group(title,keys,p,advanced=false){return advanced?`<details class="adv
 
 const closeSelectPanels=()=>document.querySelectorAll('.select-options').forEach(panel=>{if(panel.matches(':popover-open'))panel.hidePopover();});
 window.addEventListener('resize',closeSelectPanels);
+document.addEventListener('pointerdown',event=>document.querySelectorAll('.select-options').forEach(panel=>{if(panel.matches(':popover-open')&&!panel.parentElement.contains(event.target))panel.hidePopover();}));
 document.addEventListener('scroll',e=>{if(e.target instanceof Element&&e.target.closest('.select-options'))return;closeSelectPanels();},true);
 function enhanceSelects(){
  if(!('showPopover' in HTMLElement.prototype))return;
  document.querySelectorAll('#calculator select').forEach(select=>{
   const key=select.name, items=[...select.options];
   const shell=document.createElement('div');shell.className='select-control';
-  shell.innerHTML=`<button type="button" class="select-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="choices-${key}" aria-labelledby="label-${key} choice-${key}"><span id="choice-${key}"></span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 8 5 5 5-5"/></svg></button><div id="choices-${key}" class="select-options" role="listbox" aria-labelledby="label-${key}" popover="auto">${items.map(o=>`<button type="button" role="option" tabindex="-1" class="select-option" data-value="${esc(o.value)}" aria-selected="false"><span>${esc(o.text)}</span><span class="option-check" aria-hidden="true">✓</span></button>`).join('')}</div>`;
+  shell.innerHTML=`<button type="button" class="select-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="choices-${key}" aria-labelledby="label-${key} choice-${key}"><span id="choice-${key}"></span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 8 5 5 5-5"/></svg></button><div id="choices-${key}" class="select-options" role="listbox" aria-labelledby="label-${key}" popover="manual">${items.map(o=>`<button type="button" role="option" tabindex="-1" class="select-option" data-value="${esc(o.value)}" aria-selected="false"><span>${esc(o.text)}</span><span class="option-check" aria-hidden="true">✓</span></button>`).join('')}</div>`;
   select.after(shell);select.hidden=true;
   const trigger=shell.querySelector('.select-trigger'),panel=shell.querySelector('.select-options'),choices=[...panel.querySelectorAll('[role=option]')];
   const update=()=>{shell.querySelector(`#choice-${key}`).textContent=select.selectedOptions[0].text;choices.forEach(o=>o.setAttribute('aria-selected',String(o.dataset.value===select.value)));};
-  const position=()=>{const r=trigger.getBoundingClientRect(),gap=6,edge=12,width=Math.min(Math.max(r.width,300),innerWidth-edge*2),roomBelow=innerHeight-r.bottom-gap-edge,roomAbove=r.top-gap-edge,above=roomBelow<180&&roomAbove>roomBelow;panel.style.width=`${width}px`;panel.style.maxHeight=`${Math.max(80,Math.min(320,above?roomAbove:roomBelow))}px`;panel.style.left=`${Math.max(edge,Math.min(r.right-width,innerWidth-width-edge))}px`;panel.style.top=above?'auto':`${r.bottom+gap}px`;panel.style.bottom=above?`${innerHeight-r.top+gap}px`:'auto';};
-  const close=()=>{if(panel.matches(':popover-open'))panel.hidePopover();};
-  const open=()=>{position();panel.showPopover();(choices.find(o=>o.dataset.value===select.value)||choices[0]).focus({preventScroll:true});};
-  trigger.onclick=()=>panel.matches(':popover-open')?close():open();
-  trigger.onkeydown=e=>{if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){e.preventDefault();open();if(e.key==='Home')choices[0].focus();if(e.key==='End')choices.at(-1).focus();}};
+  const position=()=>{const r=trigger.getBoundingClientRect();panel.style.width=`${r.width}px`;panel.style.maxHeight=`${Math.max(32,Math.min(320,innerHeight-r.bottom-12))}px`;panel.style.left=`${r.left}px`;panel.style.top=`${r.bottom-1}px`;panel.style.bottom='auto';};
+  let opening=false,openFrame=0;
+  const close=()=>{opening=false;cancelAnimationFrame(openFrame);openFrame=0;if(panel.matches(':popover-open'))panel.hidePopover();};
+  const open=(key)=>{
+   if(opening)return;
+   const reveal=()=>{openFrame=0;opening=false;if(!trigger.isConnected)return;closeSelectPanels();position();panel.showPopover();const choice=key==='Home'?choices[0]:key==='End'?choices.at(-1):choices.find(o=>o.dataset.value===select.value)||choices[0];choice.focus({preventScroll:true});choice.scrollIntoView({block:'nearest',behavior:'instant'});};
+   const needed=Math.min(260,choices.length*52+12),room=innerHeight-trigger.getBoundingClientRect().bottom-12;
+   if(room<Math.min(needed,innerHeight*.4)){opening=true;trigger.scrollIntoView({block:'center',behavior:'instant'});openFrame=requestAnimationFrame(reveal);}else reveal();
+  };
+  trigger.onclick=()=>opening||panel.matches(':popover-open')?close():open();
+  trigger.onkeydown=e=>{if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){e.preventDefault();open(e.key);}};
   panel.addEventListener('beforetoggle',e=>trigger.setAttribute('aria-expanded',String(e.newState==='open')));
   choices.forEach(choice=>choice.onclick=()=>{select.value=choice.dataset.value;update();close();trigger.focus({preventScroll:true});select.dispatchEvent(new Event('change',{bubbles:true}));});
   panel.onkeydown=e=>{const index=choices.indexOf(document.activeElement);let next;
