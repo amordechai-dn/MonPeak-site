@@ -1,4 +1,4 @@
-import {money,invest,freedom,requiredSaving,loan,mortgage} from './finance.js?v=1.3.6';
+import {money,invest,freedom,requiredSaving,loan,mortgage} from './finance.js?v=1.3.7';
 const icons={compound:'↗',freedom:'☀',goal:'⚑',property:'⌂',loan:'⇄'};
 const tools={compound:{title:'ריבית דריבית',short:'ריבית דריבית',desc:'צמיחת חיסכון לאורך זמן.',initial:50000,monthly:3000,years:20,rate:8,assetFee:.5,depositFee:0,feesEnabled:true,tax:25},freedom:{title:'חופש כלכלי',short:'חופש כלכלי',desc:'הון נדרש להכנסה חודשית.',age:30,targetAge:55,initial:100000,monthly:5000,income:10000,withdrawal:4,rate:8,assetFee:.5,depositFee:0,feesEnabled:true,tax:25},goal:{title:'יעד כספי',short:'יעד כספי',desc:'חיסכון חודשי להשגת יעד.',target:100000,years:5,initial:20000,monthly:2000,priceGrowth:2,rate:8,assetFee:.5,depositFee:0,feesEnabled:true,tax:25},property:{title:'נדל״ן ומשכנתא',short:'נדל״ן ומשכנתא',desc:'הון עצמי, תשלומים ומשכנתא.',price:2000000,buyer:'single',equity:500000,costs:0,upfront:20,delivery:3,linkShare:0,buildIndex:2,years:25,mix:'thirds',fixedShare:34,indexShare:33,fixed:4.89,indexed:3.54,prime:4.75,spread:0,inflation:2,income:20000,obligations:0,bridge:0,bridgeRate:6,subsidy:0,saving:2000,savingRate:8,assetFee:.5,depositFee:0,feesEnabled:true,tax:25,stress:0},loan:{title:'מחשבון הלוואות',short:'החזר הלוואה',desc:'החזר חודשי ועלות הריבית.',amount:50000,years:5,rate:8,rateType:'nominal',method:'spitzer',variable:'no',reset:12,change:0,setup:0,monthlyFee:0}};
 const labels={initial:'יתרה התחלתית',monthly:'הפקדה חודשית',years:'תקופה בשנים',rate:'תשואה שנתית צפויה',assetFee:'דמי ניהול מצבירה — שנתי',depositFee:'דמי ניהול מהפקדה',tax:'מס על הרווח',age:'גיל נוכחי',targetAge:'גיל יעד',income:'הכנסה חודשית רצויה נטו',withdrawal:'שיעור משיכה שנתי',target:'עלות היעד כיום',priceGrowth:'עליית מחיר היעד בשנה',price:'מחיר הדירה',equity:'הון עצמי קיים',costs:'הוצאות רכישה נוספות',upfront:'תשלום בחתימה',delivery:'שנים עד המסירה',linkShare:'חלק מהיתרה הצמוד לתשומות בנייה',buildIndex:'עליית מדד תשומות בנייה בשנה',fixed:'ריבית קל״צ',indexed:'ריבית צמודת מדד',prime:'ריבית פריים בסיס',spread:'מרווח מהפריים',inflation:'אינפלציה שנתית להמחשה',obligations:'התחייבויות חודשיות קבועות',bridge:'סכום הלוואת בלון',bridgeRate:'ריבית שנתית לבלון',subsidy:'אחוז הריבית שהקבלן משלם',saving:'חיסכון חודשי עד המסירה',savingRate:'תשואה על החיסכון עד המסירה',stress:'תוספת ריבית לתרחיש',fixedShare:'חלק הקל״צ בתמהיל',indexShare:'חלק המסלול הצמוד',amount:'סכום ההלוואה',reset:'שינוי ריבית כל כמה חודשים',change:'שינוי ריבית בכל תחנה',setup:'עמלה חד־פעמית',monthlyFee:'עמלה חודשית'};
@@ -111,4 +111,62 @@ function closeSavedDialog(){
 }
 
 function showSaved(){$('#savedList').innerHTML=saved.length?saved.map(s=>`<article class="saved-item"><div><strong>${esc(tools[s.tool]?.short||'תרחיש')}</strong><small>${esc(s.date)}</small></div><button class="quiet" data-load="${s.id}">פתיחה</button><button class="quiet" data-compare="${s.id}" ${s.tool!==active?'disabled':''}>השוואה</button><button class="text-button" data-delete="${s.id}">מחיקה</button></article>`).join(''):'<p>אין תרחישים שמורים.</p>';document.querySelectorAll('[data-load]').forEach(b=>b.onclick=async()=>{const s=saved.find(s=>s.id===Number(b.dataset.load));states[s.tool]={...s.data};await closeSavedDialog();if(location.hash===`#${s.tool}`)navigate({scroll:false});else location.hash=s.tool;});document.querySelectorAll('[data-compare]').forEach(b=>b.onclick=async()=>{comparison=saved.find(s=>s.id===Number(b.dataset.compare));await closeSavedDialog();calculate();});document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{saved=saved.filter(s=>s.id!==Number(b.dataset.delete));persist();showSaved();});openSavedDialog();}
-$('.skip').onclick=e=>{e.preventDefault();$('#main').focus();$('#main').scrollIntoView();};$('#savedToggle').onclick=showSaved;$('#closeSaved').onclick=closeSavedDialog;$('#savedDialog').addEventListener('cancel',e=>{e.preventDefault();closeSavedDialog();});$('#savedDialog').addEventListener('click',e=>{const rect=e.currentTarget.getBoundingClientRect();if(e.target===e.currentTarget&&(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom))closeSavedDialog();});$('#saveCount').textContent=saved.length;window.addEventListener('hashchange',()=>navigate());render();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// Reload a published release only after its HTML is available; keep in-progress work per tab.
+const runningVersion=new URL(import.meta.url).searchParams.get('v');
+const updateDraftKey='monpeak-update-draft';
+function restoreUpdateDraft(){
+ let draft;
+ try{draft=JSON.parse(sessionStorage.getItem(updateDraftKey)||'null');sessionStorage.removeItem(updateDraftKey);}catch{return;}
+ if(!draft||Date.now()-draft.at>300000)return;
+ for(const [key,value] of Object.entries(draft.states||{}))if(tools[key]&&value&&typeof value==='object')states[key]=value;
+ comparison=draft.comparison||null;
+ render();
+ if(draft.tool===active){
+  for(const [key,value] of Object.entries(draft.fields||{})){
+   const input=document.querySelector(`#calculator [name="${CSS.escape(key)}"]`);
+   if(!input)continue;if(input.type==='checkbox')input.checked=value;else input.value=value;
+  }
+  document.querySelectorAll('#calculator select').forEach(select=>{const label=document.getElementById('choice-'+select.name);if(label)label.textContent=select.selectedOptions[0]?.text||'';document.querySelectorAll(`#choices-${select.name} [role=option]`).forEach(o=>o.setAttribute('aria-selected',String(o.dataset.value===select.value)));});
+  Object.keys(sliderRanges).forEach(syncSlider);syncFeeControls();
+  if($('#calculator')?.checkValidity())calculate();
+  for(const i of draft.details||[])if($('#calculator')?.querySelectorAll('details')[i])$('#calculator').querySelectorAll('details')[i].open=true;
+  requestAnimationFrame(()=>{window.scrollTo(0,draft.scroll||0);const input=draft.focus&&document.querySelector(`#calculator [name="${CSS.escape(draft.focus)}"]`);input?.focus({preventScroll:true});});
+ }
+}
+function preserveUpdateDraft(){
+ const fields={};document.querySelectorAll('#calculator [name]').forEach(input=>fields[input.name]=input.type==='checkbox'?input.checked:input.value);
+ try{sessionStorage.setItem(updateDraftKey,JSON.stringify({at:Date.now(),tool:active,states,comparison,fields,scroll:scrollY,focus:document.activeElement?.name,details:[...document.querySelectorAll('#calculator details')].flatMap((d,i)=>d.open?[i]:[])}));return true;}catch{return false;}
+}
+function startAutoUpdates(){
+ restoreUpdateDraft();
+ let registration,checking=false,lastInput=0;
+ document.addEventListener('input',()=>lastInput=Date.now());
+ const newer=v=>{if(!/^\d+\.\d+\.\d+$/.test(v)||!runningVersion)return false;const a=v.split('.').map(Number),b=runningVersion.split('.').map(Number);for(let i=0;i<3;i++){if(a[i]!==b[i])return a[i]>b[i];}return false;};
+ async function check(){
+  if(checking||document.visibilityState==='hidden'||!navigator.onLine)return;
+  checking=true;
+  try{
+   const endpoint=new URL('./version.json',location.href);endpoint.searchParams.set('_',Date.now());
+   const response=await fetch(endpoint,{cache:'no-store'});if(!response.ok)return;
+   const {version}=await response.json();if(!newer(version))return;
+   // Defer while typing or choosing an option; the next check retries automatically.
+   if(Date.now()-lastInput<3000||$('#savedDialog').open||[...document.querySelectorAll('.select-options')].some(panel=>panel.matches(':popover-open')))return;
+   const url=new URL(location.href);url.searchParams.set('v',version);
+   if(url.href===location.href)return;
+   const htmlResponse=await fetch(url,{cache:'no-store'});if(!htmlResponse.ok)return;
+   const html=await htmlResponse.text();if(!html.includes(`app.js?v=${version}`)||!html.includes(`style.css?v=${version}`))return;
+   if(!preserveUpdateDraft())return;
+   registration?.update().catch(()=>{});
+   location.replace(url.href);
+  }catch{/* Offline or a release still deploying: retain this working page and retry. */}
+  finally{checking=false;}
+ }
+ if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(r=>{registration=r;}).catch(()=>{});
+ window.setInterval(check,30000);
+ window.addEventListener('focus',check);window.addEventListener('online',check);window.addEventListener('pageshow',check);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')check();});
+ check();
+}
+
+$('.skip').onclick=e=>{e.preventDefault();$('#main').focus();$('#main').scrollIntoView();};$('#savedToggle').onclick=showSaved;$('#closeSaved').onclick=closeSavedDialog;$('#savedDialog').addEventListener('cancel',e=>{e.preventDefault();closeSavedDialog();});$('#savedDialog').addEventListener('click',e=>{const rect=e.currentTarget.getBoundingClientRect();if(e.target===e.currentTarget&&(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom))closeSavedDialog();});$('#saveCount').textContent=saved.length;window.addEventListener('hashchange',()=>navigate());render();startAutoUpdates();
