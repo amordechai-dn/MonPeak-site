@@ -76,3 +76,5 @@ body{font-size:16px;line-height:1.65}nav a{font-size:14px}.quiet,.text-button,.p
 .help-button:active{color:#907132}.metric.accent .help-button:active{color:#e2c887}@media(prefers-reduced-motion:reduce){.help-button{transition:none}}
 
 .compound-comparison .compound-outcome{gap:10px}.compound-comparison .compound-outcome>.metric-label{font-size:16px;line-height:1.5;min-height:48px}.compound-outcome .outcome-profit{margin-top:10px;padding-top:16px;border-top:1px solid #dce1d2;display:flex;flex-direction:column;gap:6px}.compound-outcome .outcome-profit .metric-label{font-size:15px;line-height:1.5;color:#5f6c53;min-height:44px}.compound-comparison .outcome-profit strong{font-size:clamp(23px,2vw,29px);line-height:1.4}.compound-outcome.accent .outcome-profit{border-color:#ffffff24}.compound-outcome.accent .outcome-profit .metric-label{color:#d1dcc8}@media(max-width:540px),(min-width:801px) and (max-width:1100px){.compound-comparison .compound-outcome>.metric-label,.compound-outcome .outcome-profit .metric-label{min-height:0}.compound-outcome .outcome-profit{margin-top:6px}}
+
+.compound-details{margin-bottom:18px}
