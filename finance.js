@@ -47,3 +47,13 @@ export function mortgage(p){const ltv={single:.75,replacement:.7,investment:.5}[
  const bridge=loan({amount:p.bridge,years:p.delivery,rate:p.bridgeRate,method:'balloon'});const bridgeInterest=bridge.interest*(1-p.subsidy/100);
  const atDelivery=Math.max(0,p.price-signing+linked-amount+p.bridge);const ownAtSigning=Math.max(0,signing-p.bridge);const signingGap=Math.max(0,ownAtSigning-p.equity);const remainingEquity=Math.max(0,p.equity-ownAtSigning);const futureCash=invest({initial:remainingEquity,monthly:p.saving,years:p.delivery,rate:p.savingRate,fee:p.fee,assetFee:p.assetFee,depositFee:p.depositFee,feesEnabled:p.feesEnabled,tax:p.tax});
  return {amount,maximum,ltv,equityGap,signingGap,first,total,max:Math.max(...rows.map(r=>r.payment)),rows,signing,linked,atDelivery,bridgeInterest,bridgeDue:p.bridge,deliveryGap:Math.max(0,atDelivery+p.costs+bridgeInterest-futureCash.net),futureCash,ratio:first/Math.max(1,p.income-p.obligations)*100};}
+
+// A target planner uses a net return assumption, so fees and tax are not charged twice.
+export function goalPlan({target=100000,initial=20000,years=3,rate=3}={}){
+ const months=Math.max(1,Math.round(years*12));
+ const params={initial,years:months/12,rate,tax:0,feesEnabled:false};
+ const required=requiredSaving(target,params),monthly=Number.isFinite(required)?Math.max(0,Math.ceil(required-1e-7)):Infinity;
+ if(!Number.isFinite(monthly))return {target,months,monthly,rows:[]};
+ const result=invest({...params,monthly});
+ return {...result,target,months,monthly,rows:result.rows.map(row=>({...row,target}))};
+}
