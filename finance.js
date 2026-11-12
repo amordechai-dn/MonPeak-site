@@ -49,12 +49,31 @@ export function mortgage(p){const ltv={single:.75,replacement:.7,investment:.5}[
  const atDelivery=Math.max(0,p.price-signing+linked-amount+p.bridge);const ownAtSigning=Math.max(0,signing-p.bridge);const signingGap=Math.max(0,ownAtSigning-p.equity);const remainingEquity=Math.max(0,p.equity-ownAtSigning);const futureCash=invest({initial:remainingEquity,monthly:p.saving,years:p.delivery,rate:p.savingRate,fee:p.fee,assetFee:p.assetFee,depositFee:p.depositFee,feesEnabled:p.feesEnabled,tax:p.tax,taxEnabled:p.taxEnabled});
  return {amount,maximum,ltv,equityGap,signingGap,first,total,max:Math.max(...rows.map(r=>r.payment)),rows,signing,linked,atDelivery,bridgeInterest,bridgeDue:p.bridge,deliveryGap:Math.max(0,atDelivery+p.costs+bridgeInterest-futureCash.net),futureCash,ratio:first/Math.max(1,p.income-p.obligations)*100};}
 
-// A target planner uses a net return assumption, so fees and tax are not charged twice.
-export function goalPlan({target=100000,initial=20000,years=3,rate=3}={}){
- const months=Math.max(1,Math.round(years*12));
+// Legacy net-return scenarios and cash-fund scenarios share the target solver.
+// Cash-fund returns are after fund fees; personal tax applies to real gains at redemption.
+export function goalPlan({target=100000,initial=20000,years=3,rate=4,inflation=0,tax=25,taxEnabled=true,goalModel='cash-v2'}={}){
+ const months=Math.max(1,Math.round(years*12)),futureTarget=target*(1+inflation/100)**(months/12);
  const params={initial,years:months/12,rate,tax:0,feesEnabled:false};
- const required=requiredSaving(target,params),monthly=Number.isFinite(required)?Math.max(0,Math.ceil(required-1e-7)):Infinity;
- if(!Number.isFinite(monthly))return {target,months,monthly,rows:[]};
- const result=invest({...params,monthly});
- return {...result,target,months,monthly,rows:result.rows.map(row=>({...row,target}))};
+ function project(monthly,keepRows=false){
+  if(goalModel!=='cash-v2')return invest({...params,monthly});
+  const growth=(1+rate/100)**(1/12),index=(1+inflation/100)**(1/12),taxRate=taxEnabled?tax/100:0;
+  let balance=initial,paid=initial,indexedBasis=initial,levy=0;const rows=keepRows?[{year:0,paid,gross:balance,balance,net:balance,tax:0}]:[];
+  for(let m=1;m<=months;m++){
+   balance=balance*growth+monthly;indexedBasis=indexedBasis*index+monthly;paid+=monthly;
+   levy=Math.max(0,balance-Math.max(paid,indexedBasis))*taxRate;
+   if(keepRows&&(m%12===0||m===months))rows.push({year:m/12,paid,gross:balance,balance,net:balance-levy,tax:levy});
+  }
+  return {gross:balance,balance,paid,net:balance-levy,tax:levy,fees:0,assetFees:0,depositFees:0,profit:balance-paid,rows};
+ }
+ let required=0;
+ if(goalModel!=='cash-v2')required=requiredSaving(futureTarget,params);
+ else if(project(0).net<futureTarget){
+  let low=0,high=Math.max(1,futureTarget);
+  for(let i=0;i<40&&project(high).net<futureTarget;i++)high*=2;
+  for(let i=0;i<65;i++){const mid=(low+high)/2;if(project(mid).net<futureTarget)low=mid;else high=mid;}required=high;
+ }
+ const monthly=Number.isFinite(required)?Math.max(0,Math.ceil(required-1e-7)):Infinity;
+ if(!Number.isFinite(monthly))return {target:futureTarget,targetToday:target,months,monthly,rows:[]};
+ const result=project(monthly,true);
+ return {...result,target:futureTarget,targetToday:target,months,monthly,rows:result.rows.map(row=>({...row,target:target*(1+inflation/100)**row.year}))};
 }
