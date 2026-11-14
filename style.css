@@ -102,3 +102,40 @@ body{font-size:16px;line-height:1.65}nav a{font-size:14px}.quiet,.text-button,.p
 
 /* Align label and control rows, regardless of optional sliders. */
 .property-workspace #calculator .fields{align-items:start;grid-template-columns:repeat(2,minmax(0,1fr))}.property-workspace #calculator .fields>.field:has(>.field-label){display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(50px,auto) 30px;align-content:start;gap:7px}.property-workspace #calculator .fields>.field[hidden]{display:none}.property-workspace #calculator .field-label{align-items:center}.property-workspace #calculator .select-trigger{min-height:50px}.property-workspace #calculator .tax-section .fee-fields{grid-template-columns:1fr}.property-workspace .property-support>.metric{display:grid;grid-template-rows:minmax(48px,auto) auto 1fr;align-content:start;gap:8px}.property-workspace .property-support>.metric>.metric-label{align-items:flex-start}.property-workspace .property-support>.metric>small{align-self:start}.property-workspace .property-cash-flow .metric-label{min-height:46px;align-items:flex-start}@media(max-width:540px),(min-width:801px) and (max-width:1100px){.property-workspace .property-support>.metric{display:flex}.property-workspace .property-support>.metric>.metric-label{min-height:0}.property-workspace .property-cash-flow .metric-label{min-height:0;align-items:center}}
+
+/* A compact calculator picker replaces the horizontally clipped mobile tabs. */
+.mobile-nav,.mobile-saved-label{display:none}
+@media(max-width:800px){
+ header{position:relative;z-index:20;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;min-height:0;padding:12px 16px}
+ header>.brand{font-size:23px;gap:6px}header>.brand svg{width:28px;height:28px}
+ header>#nav{display:none}
+ header>.header-actions{grid-column:2;grid-row:1;margin:0;gap:7px}
+ .header-actions #savedToggle{padding:8px 10px;gap:6px;min-height:40px;font-size:14px}
+ .header-actions .saved-icon{width:17px;height:17px}.header-actions #saveCount{min-width:20px;height:20px;font-size:13px}
+ .saved-label{display:none}.mobile-saved-label{display:inline}.header-version{font-size:12px}
+ .mobile-nav{display:block;position:relative;grid-column:1/-1;grid-row:2;min-width:0}
+ .mobile-nav>summary{display:flex;align-items:center;gap:10px;list-style:none;min-height:46px;padding:10px 14px;border:1px solid #334331;border-radius:10px;background:#253426;color:#fbfaf6;font-size:16px;line-height:1.5;cursor:pointer}
+ .mobile-nav>summary::-webkit-details-marker{display:none}.mobile-current-icon{font-size:22px;line-height:1;color:#d2bb80;width:24px;text-align:center}.mobile-current-title{font-weight:500;flex:1}.mobile-switch-label{font-size:14px;color:#d1d8c9}
+ .mobile-nav summary svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;transition:transform .15s}.mobile-nav[open] summary svg{transform:rotate(180deg)}
+ header .mobile-nav>nav{position:absolute;z-index:40;inset:calc(100% + 6px) 0 auto;display:grid;gap:4px;max-width:none;max-height:min(60dvh,360px);overflow:auto;padding:7px;border:1px solid #d9dfd0;border-radius:12px;background:#fbfaf6;box-shadow:0 12px 28px #17231526}
+ header .mobile-nav:not([open])>nav{display:none}
+ .mobile-nav nav a{display:flex;align-items:center;gap:12px;min-height:46px;padding:10px 12px;font-size:16px;border-radius:8px;color:#394631;white-space:normal}.mobile-nav nav a>span:first-child{width:24px;text-align:center;font-size:21px;color:#8b733d}.mobile-nav nav a[aria-current]{background:#e8eedf;color:#263c25;font-weight:500}.mobile-selected{margin-inline-start:auto;color:#536f3d}
+ .mobile-nav nav a:active{background:#e3e8d9}
+ .calc-hero{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ .workspace,.goal-workspace{margin:12px auto 24px;padding-inline:12px;gap:16px}
+ .workspace>form{padding:16px}.form-top{margin:0}.field-section{margin-top:18px}.workspace>form>.form-top+.field-section{margin-top:14px}
+ .fields{row-gap:14px;column-gap:12px}.field-section h3{margin-bottom:12px}.advanced{margin-top:16px}
+ .result-toolbar{margin-bottom:12px}.chart-panel{padding:16px 12px}.footer-inner{padding-block:18px}
+}
+@media(hover:hover) and (pointer:fine){.mobile-nav>summary:hover{background:#334730;box-shadow:0 0 0 3px #b49b6020}.mobile-nav nav a:hover{background:#e8eedf}}
+
+@media(max-width:800px){
+ header>.brand{font-size:21px;gap:4px}header>.brand svg{width:24px;height:26px;flex-shrink:0}
+ header .mobile-nav>nav{grid-template-columns:minmax(0,1fr)}
+ .goal-workspace>form>.field-section:first-of-type>.fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .goal-workspace>form>.field-section:first-of-type>.fields>.goal-return{grid-column:1/-1;grid-row:3}
+ .goal-workspace>form>.field-section:first-of-type>.fields>.field:has([name=inflation]){grid-row:2;grid-column:2}
+}
+@media(max-width:380px){header .header-actions .saved-icon{display:none}header{padding-inline:12px;column-gap:8px}}
+@keyframes mobile-menu-in{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:800px){.mobile-nav[open]>nav{animation:mobile-menu-in .15s ease-out}}
