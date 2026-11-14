@@ -40,11 +40,11 @@ export function freedom(p){
  const target=p.income*12/(p.withdrawal/100),years=p.targetAge-p.age;
  const result=invest({...p,years});
  const income=retirementIncome(result.balance,result.paid,p.withdrawal,p.tax,p.taxEnabled);
- const projection=invest({...p,years:Math.max(0,110-p.age),rowInterval:1});
+ const projection=invest({...p,years:Math.max(0,120-p.age),rowInterval:1});
  const reachedRow=projection.rows.find(row=>retirementIncome(row.balance,row.paid,p.withdrawal,p.tax,p.taxEnabled).monthlyIncome+1e-8>=p.income);
  const reachedMonths=reachedRow?Math.round(reachedRow.year*12):null;
  const reached=reachedMonths===null?null:p.age+reachedMonths/12;
- const endMonth=Math.max(Math.round(years*12),reachedMonths??Math.round((110-p.age)*12));
+ const endMonth=Math.max(Math.round(years*12),reachedMonths??Math.round((120-p.age)*12));
  const projectionRows=projection.rows.filter(row=>{
   const m=Math.round(row.year*12);return m<=endMonth&&(m%12===0||m===endMonth||m===reachedMonths||m===Math.round(years*12));
  }).map(row=>{const flow=retirementIncome(row.balance,row.paid,p.withdrawal,p.tax,p.taxEnabled);return {...row,age:p.age+row.year,requiredCapital:target/flow.retention,monthlyIncome:flow.monthlyIncome};});
