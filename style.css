@@ -139,3 +139,5 @@ body{font-size:16px;line-height:1.65}nav a{font-size:14px}.quiet,.text-button,.p
 @media(max-width:380px){header .header-actions .saved-icon{display:none}header{padding-inline:12px;column-gap:8px}}
 @keyframes mobile-menu-in{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:800px){.mobile-nav[open]>nav{animation:mobile-menu-in .15s ease-out}}
+
+.results{scroll-margin-top:12px}
