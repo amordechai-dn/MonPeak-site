@@ -1,5 +1,5 @@
-import {getFieldHelp,getResultHelp} from './help-content.js?v=1.13.0';
-import {money,invest,freedom,loan,mortgage,goalPlan} from './finance.js?v=1.13.0';
+import {getFieldHelp,getResultHelp,getHelpSource} from './help-content.js?v=1.13.1';
+import {money,invest,freedom,loan,mortgage,goalPlan} from './finance.js?v=1.13.1';
 const icons={compound:'↗',freedom:'☀',goal:'⚑',property:'⌂',loan:'⇄'};
 const tools={compound:{title:'ריבית דריבית',short:'ריבית דריבית',desc:'צמיחת חיסכון לאורך זמן.',initial:0,monthly:2000,years:10,rate:8,assetFee:.7,depositFee:0,feesEnabled:false,tax:25},freedom:{title:'חופש כלכלי',short:'חופש כלכלי',desc:'הון נדרש להכנסה חודשית.',age:22,targetAge:55,initial:0,monthly:0,income:10000,withdrawal:3.5,rate:8,assetFee:.7,depositFee:0,feesEnabled:false,tax:25},goal:{title:'יעד כספי',short:'יעד כספי',desc:'כמה צריך לחסוך בכל חודש כדי להגיע ליעד?',target:100000,years:3,initial:0,rate:4,inflation:1.6,tax:25,taxEnabled:true,goalModel:'cash-v2'},property:{title:'נדל״ן ומשכנתא',short:'נדל״ן ומשכנתא',desc:'הון עצמי, תשלומים ומשכנתא.',price:2000000,buyer:'single',equity:500000,costs:0,upfront:20,delivery:3,linkShare:0,buildIndex:2,years:25,mix:'thirds',fixedShare:34,indexShare:33,fixed:4.89,indexed:3.54,prime:4.75,spread:0,inflation:2,income:20000,obligations:0,bridge:0,bridgeRate:6,subsidy:0,saving:2000,savingRate:8,assetFee:.7,depositFee:0,feesEnabled:false,tax:25,stress:0},loan:{title:'מחשבון הלוואות',short:'החזר הלוואה',desc:'החזר חודשי ועלות הריבית.',amount:50000,years:5,rate:8,rateType:'nominal',method:'spitzer',variable:'no',reset:12,change:0,setup:0,monthlyFee:0}};
 const labels={goalDuration:'זמן עד היעד',initial:'יתרה התחלתית',monthly:'הפקדה חודשית',years:'תקופה בשנים',rate:'תשואה שנתית צפויה',assetFee:'דמי ניהול מצבירה',depositFee:'דמי ניהול מהפקדה',tax:'מס על הרווח',age:'גיל נוכחי',targetAge:'גיל יעד',income:'הכנסה חודשית רצויה נטו',withdrawal:'שיעור משיכה שנתי',target:'עלות היעד כיום',priceGrowth:'עליית מחיר היעד בשנה',price:'מחיר הדירה',equity:'הון עצמי קיים',costs:'הוצאות רכישה נוספות',upfront:'תשלום בחתימה',delivery:'שנים עד המסירה',linkShare:'חלק מהיתרה הצמוד לתשומות בנייה',buildIndex:'עליית מדד תשומות בנייה בשנה',fixed:'ריבית קל״צ',indexed:'ריבית צמודת מדד',prime:'ריבית פריים בסיס',spread:'מרווח מהפריים',inflation:'אינפלציה שנתית להמחשה',obligations:'התחייבויות חודשיות קבועות',bridge:'סכום הלוואת בלון',bridgeRate:'ריבית שנתית לבלון',subsidy:'אחוז הריבית שהקבלן משלם',saving:'חיסכון חודשי עד המסירה',savingRate:'תשואה על החיסכון עד המסירה',stress:'תוספת ריבית לתרחיש',fixedShare:'חלק הקל״צ בתמהיל',indexShare:'חלק המסלול הצמוד',amount:'סכום ההלוואה',reset:'שינוי ריבית כל כמה חודשים',change:'שינוי ריבית בכל תחנה',setup:'עמלה חד־פעמית',monthlyFee:'עמלה חודשית'};
@@ -355,13 +355,22 @@ function preserveUpdateDraft(){
 }
 if(!$('#helpDialog')){
  const dialog=document.createElement('dialog');dialog.id='helpDialog';dialog.className='help-dialog';dialog.setAttribute('aria-labelledby','helpTitle');dialog.setAttribute('aria-describedby','helpText');
- dialog.innerHTML='<div class="dialog-head"><h2 id="helpTitle"></h2><button type="button" id="closeHelp" class="quiet">סגירה ✕</button></div><p id="helpText"></p>';document.body.append(dialog);
+ dialog.innerHTML='<div class="dialog-head"><h2 id="helpTitle"></h2><button type="button" id="closeHelp" class="quiet">סגירה ✕</button></div><div id="helpText" class="help-copy"></div>';document.body.append(dialog);
 }
 let helpOpener=null,helpAnimation=null,helpClosing=null;
+function setHelpCopy(text,source){
+ const container=$('#helpText');container.replaceChildren();
+ for(const paragraph of text.split(/\n\s*\n/)){
+  const p=document.createElement('p'),separator=paragraph.indexOf(' — ');
+  if(separator>0&&separator<45){const label=document.createElement('strong');label.textContent=paragraph.slice(0,separator);p.append(label,document.createTextNode(' — '+paragraph.slice(separator+3)));}else p.textContent=paragraph;
+  container.append(p);
+ }
+ if(source){const link=document.createElement('a');link.className='help-source';link.href=source.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=source.label;container.append(link);}
+}
 function openHelpDialog(trigger){
  const text=trigger.dataset.helpKind==='result'?getResultHelp(trigger.dataset.help,active):getFieldHelp(trigger.dataset.help,active);if(!text)return;
  closeSelectPanels();helpOpener=trigger;helpAnimation?.cancel();
- $('#helpTitle').textContent=trigger.dataset.helpTitle;$('#helpText').textContent=text;
+ $('#helpTitle').textContent=trigger.dataset.helpTitle;setHelpCopy(text,getHelpSource(trigger.dataset.help,trigger.dataset.helpKind));
  const dialog=$('#helpDialog');if(!dialog.open)dialog.showModal();
  if(!motionPreference.matches)helpAnimation=dialog.animate([{transform:'translateY(6px)'},{transform:'translateY(0)'}],{duration:140,easing:'ease-out'});
 }
