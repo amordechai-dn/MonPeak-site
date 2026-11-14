@@ -141,3 +141,12 @@ body{font-size:16px;line-height:1.65}nav a{font-size:14px}.quiet,.text-button,.p
 @media(max-width:800px){.mobile-nav[open]>nav{animation:mobile-menu-in .15s ease-out}}
 
 .results{scroll-margin-top:12px}
+
+/* Status colors are reserved for explicit target comparisons. */
+.target-status{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:500;line-height:1.6;margin-top:6px}.target-status>span{font-size:16px;flex-shrink:0}
+.metric.target-met{background:#edf5e9;border-color:#9ab78e}.metric.target-met>strong,.metric.target-met .target-status{color:#286034}
+.metric.target-missed{background:#fff1ee;border-color:#cf9a92}.metric.target-missed>strong,.metric.target-missed .target-status{color:#a12f2b}
+.metric.accent.target-met{background:#234d32;border-color:#376d44}.metric.accent.target-met>strong,.metric.accent.target-met>.metric-label{color:#f6fff2}.metric.accent.target-met>small,.metric.accent.target-met .target-status{color:#daecd4}
+.metric.accent.target-missed{background:#692f2e;border-color:#87413d}.metric.accent.target-missed>strong,.metric.accent.target-missed>.metric-label{color:#fff7f3}.metric.accent.target-missed>small,.metric.accent.target-missed .target-status{color:#ffe0d7}.metric.accent.target-missed .help-button{color:#f2c2b7}
+.freedom-income.target-met{border-color:#9ab78e}.freedom-income.target-missed{border-color:#cf9a92}.freedom-income.target-met .target-actual strong{color:#286034}.freedom-income.target-missed .target-actual strong{color:#a12f2b}.freedom-income.target-met .freedom-progress>span{background:#347b44}.freedom-income.target-missed .freedom-progress>span{background:#b54b42}
+.property-cash-flow .target-met>strong{color:#286034}.property-cash-flow .target-missed>strong{color:#a12f2b}.property-shortfall.target-missed{background:#fff1ee;border-color:#cf9a92;color:#a12f2b}
