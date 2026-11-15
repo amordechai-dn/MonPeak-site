@@ -1,6 +1,6 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios} from './portfolio-insights.js?v=1.17.2';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.17.2';
-import {normalizePortfolio,analyzePortfolio,convertPortfolioMode,equalizePortfolio,filterFunds,parsePortfolioNumber} from './portfolio-model.js?v=1.17.2';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios} from './portfolio-insights.js?v=1.17.3';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.17.3';
+import {normalizePortfolio,analyzePortfolio,convertPortfolioMode,equalizePortfolio,filterFunds,parsePortfolioNumber} from './portfolio-model.js?v=1.17.3';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -62,7 +62,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},onOpe
   find('#portfolioFundGrid').innerHTML=matches.length?matches.map(f=>{
    const added=selected.includes(f.id);
    const annualCost=Number.isFinite(f.fee)?f.fee+(Number.isFinite(f.extraFee)?f.extraFee:0):null;
-   return `<article class="portfolio-fund" aria-label="${esc(f.name)}"><div class="portfolio-fund-heading"><span class="portfolio-ticker" dir="ltr">${f.id}</span><h3 class="portfolio-fund-name" dir="auto" title="${esc(f.name)}">${esc(f.label)}</h3></div><div class="portfolio-card-cost"><span>עלות שנתית</span><strong>${annualCost===null?'<span class="portfolio-unverified">לא אומתה</span>':pct(annualCost)}</strong></div><div class="portfolio-fund-actions" dir="rtl"><button type="button" class="primary portfolio-add ${added?'is-added':''}" data-add-fund="${f.id}" ${added?'disabled':''} aria-label="${added?'כבר בתיק':'הוספת'} ${f.id}"><span aria-hidden="true">${added?'✓':'＋'}</span>${added?'בתיק':'הוספה לתיק'}</button><button type="button" class="text-button" data-fund-details="${f.id}" aria-label="פרטי ${f.id}">פרטים ומקור</button></div></article>`;
+   return `<article class="portfolio-fund" aria-label="${esc(f.name)}"><div class="portfolio-fund-heading"><span class="portfolio-ticker" dir="ltr">${f.id}</span><h3 class="portfolio-fund-name" dir="auto" title="${esc(f.name)}">${esc(f.label)}</h3></div><p class="portfolio-card-full-name" dir="${/[א-ת]/.test(f.name)?'rtl':'ltr'}">${esc(f.name)}</p><dl class="portfolio-card-meta"><div><dt>התאגדות</dt><dd>${esc(f.domicile)}</dd></div><div><dt>מטבע מסחר</dt><dd dir="auto">${esc(f.currency)}</dd></div><div><dt>חלוקה</dt><dd>${esc(f.distribution)}</dd></div></dl><div class="portfolio-card-cost"><span>עלות שנתית</span><strong>${annualCost===null?'<span class="portfolio-unverified">לא אומתה</span>':pct(annualCost)}</strong></div><div class="portfolio-fund-actions" dir="rtl"><button type="button" class="primary portfolio-add ${added?'is-added':''}" data-add-fund="${f.id}" ${added?'disabled':''} aria-label="${added?'כבר בתיק':'הוספת'} ${f.id}"><span aria-hidden="true">${added?'✓':'＋'}</span>${added?'בתיק':'הוספה לתיק'}</button><button type="button" class="text-button" data-fund-details="${f.id}" aria-label="פרטי ${f.id}">פרטים ומקור</button></div></article>`;
   }).join(''):`<div class="portfolio-empty-search"><h3>לא נמצאו קרנות</h3><p>נסו שם אחר או הסירו את הסינון.</p><button type="button" class="text-button" data-clear-filters>איפוס חיפוש וסינון</button></div>`;
  }
  function insightsHTML(data){
