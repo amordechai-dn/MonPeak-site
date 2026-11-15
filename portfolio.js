@@ -1,11 +1,12 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios} from './portfolio-insights.js?v=1.17.0';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.17.0';
-import {normalizePortfolio,analyzePortfolio,convertPortfolioMode,equalizePortfolio,filterFunds,parsePortfolioNumber} from './portfolio-model.js?v=1.17.0';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios} from './portfolio-insights.js?v=1.17.1';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.17.1';
+import {normalizePortfolio,analyzePortfolio,convertPortfolioMode,equalizePortfolio,filterFunds,parsePortfolioNumber} from './portfolio-model.js?v=1.17.1';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
 const amount=n=>`<bdi>${number(n)} <span class="portfolio-shekel">₪</span></bdi>`;
 const pct=n=>!Number.isFinite(n)?'—':`<bdi>${number(n,4)}%</bdi>`;
+const cardDescription=text=>String(text).split(/(S&P 500|NASDAQ[- ]100|MSCI(?: [A-Za-z]+){0,3}|FTSE(?: [A-Za-z]+){0,3}|Russell 2000|Swap|Staking|iShares|AVGS|AVWS|SGLN|WTI|ETC|ETP|Ether|Solana|Cardano)/g).map((part,index)=>index%2?`<bdi dir="ltr" class="portfolio-latin">${esc(part)}</bdi>`:esc(part)).join('');
 const reviewDate=value=>value?String(value).split('-').reverse().join('.'):'טרם אומת';
 const info=(key,label)=>`<button type="button" class="help-button" data-portfolio-help="${key}" aria-label="הסבר על ${label}" aria-haspopup="dialog"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.25"/><path d="M10 9v4M10 6.5h.01"/></svg></button>`;
 const help={
@@ -61,7 +62,9 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},onOpe
   find('#portfolioSearchStatus').textContent=`${matches.length} קרנות נמצאו`;
   find('#portfolioFundGrid').innerHTML=matches.length?matches.map(f=>{
    const added=selected.includes(f.id);
-   return `<article class="portfolio-fund"><div class="portfolio-fund-heading"><span class="portfolio-ticker" dir="ltr">${f.id}</span><span class="portfolio-category">${fundGroups[f.group]||categories[f.category].name}</span></div><h3>${esc(f.label)}</h3><p class="portfolio-fund-name" dir="ltr">${esc(f.name)}</p><p class="portfolio-fund-description">${esc(f.description)}</p><dl class="portfolio-fund-facts"><div><dt>דמי ניהול בשנה</dt><dd>${f.fee===null?'טרם אומת':pct(f.fee)}</dd></div><div><dt>מטבע מסחר</dt><dd dir="ltr">${f.currency}</dd></div><div><dt>חלוקה</dt><dd>${f.distribution}</dd></div></dl>${f.fee===null?`<p class="portfolio-fee-note">באתר שנבדק: ${pct(f.reportedFee)} · ללא אימות עדכני</p>`:Number.isFinite(f.extraFee)&&f.extraFee>0?`<p class="portfolio-fee-note">תוספת שנתית: ${pct(f.extraFee)} · כלולה בחישוב</p>`:''}<div class="portfolio-fund-actions"><button type="button" class="text-button" data-fund-details="${f.id}" aria-label="פרטי ${f.id}">פרטים ומקור</button><button type="button" class="primary portfolio-add ${added?'is-added':''}" data-add-fund="${f.id}" ${added?'disabled':''} aria-label="${added?'כבר בתיק':'הוספת'} ${f.id}">${added?'✓ בתיק':'＋ הוספה לתיק'}</button></div></article>`;
+   const nameDir=/[א-ת]/.test(f.name)?'rtl':'ltr',currencyDir=/[א-ת]/.test(f.currency)?'rtl':'ltr';
+   const feeHint=f.fee===null?`${pct(f.reportedFee)} מהמקור`:Number.isFinite(f.extraFee)&&f.extraFee>0?`<bdi dir="ltr">+${number(f.extraFee,4)}%</bdi> נוסף`:'';
+   return `<article class="portfolio-fund"><div class="portfolio-fund-heading"><div class="portfolio-fund-code"><span class="portfolio-ticker" dir="ltr">${f.id}</span><span class="portfolio-exchange" dir="rtl">${esc(f.exchange||'ארה״ב')}</span></div><div class="portfolio-fund-identity"><h3 class="portfolio-fund-name" dir="${nameDir}" title="${esc(f.name)}">${esc(f.name)}</h3><div class="portfolio-fund-meta" dir="rtl"><span class="portfolio-fund-label" title="${esc(f.label)}">${esc(f.label)}</span><span class="portfolio-distribution">${esc(f.distribution)}</span></div></div></div><p class="portfolio-fund-description" dir="rtl">${cardDescription(f.description)}</p><dl class="portfolio-fund-facts" dir="rtl"><div><dt>דמי ניהול בשנה</dt><dd>${f.fee===null?'<span class="portfolio-unverified">לא אומת</span>':pct(f.fee)}${feeHint?`<small class="portfolio-card-fee-hint" dir="rtl">${feeHint}</small>`:''}</dd></div><div><dt>מטבע מסחר</dt><dd dir="${currencyDir}">${esc(f.currency)}</dd></div><div><dt>רישום</dt><dd dir="rtl">${esc(f.domicile)}</dd></div></dl><div class="portfolio-fund-actions" dir="rtl"><button type="button" class="primary portfolio-add ${added?'is-added':''}" data-add-fund="${f.id}" ${added?'disabled':''} aria-label="${added?'כבר בתיק':'הוספת'} ${f.id}"><span aria-hidden="true">${added?'✓':'＋'}</span>${added?'בתיק':'הוספה לתיק'}</button><button type="button" class="text-button" data-fund-details="${f.id}" aria-label="פרטי ${f.id}">פרטים ומקור</button></div></article>`;
   }).join(''):`<div class="portfolio-empty-search"><h3>לא נמצאו קרנות</h3><p>נסו שם אחר או הסירו את הסינון.</p><button type="button" class="text-button" data-clear-filters>איפוס חיפוש וסינון</button></div>`;
  }
  function insightsHTML(data){
