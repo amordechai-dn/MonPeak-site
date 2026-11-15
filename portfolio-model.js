@@ -5,7 +5,7 @@ export function parsePortfolioNumber(value){
 export function normalizePortfolio(raw={}){
  if(!raw||typeof raw!=='object'||Array.isArray(raw))raw={};
  const budget=parsePortfolioNumber(raw.budget??100000),seen=new Set();
- return {version:1,name:typeof raw.name==='string'?raw.name.slice(0,60):'התיק שלי',mode:raw.mode==='amount'?'amount':'percent',budget:Number.isFinite(budget)&&budget>0&&budget<=1e12?budget:100000,rows:(Array.isArray(raw.rows)?raw.rows:[]).filter(r=>r&&typeof r.id==='string'&&r.id.length<=40&&!seen.has(r.id)&&seen.add(r.id)).slice(0,40).map(r=>{const value=parsePortfolioNumber(r.value);return {id:r.id,value:Number.isFinite(value)&&value<=1e12?value:0};})};
+ return {version:1,name:typeof raw.name==='string'?raw.name.slice(0,60):'התיק שלי',mode:raw.mode==='amount'?'amount':'percent',includeReported:raw.includeReported===true,budget:Number.isFinite(budget)&&budget>0&&budget<=1e12?budget:100000,rows:(Array.isArray(raw.rows)?raw.rows:[]).filter(r=>r&&typeof r.id==='string'&&r.id.length<=40&&!seen.has(r.id)&&seen.add(r.id)).slice(0,100).map(r=>{const value=parsePortfolioNumber(r.value);return {id:r.id,value:Number.isFinite(value)&&value<=1e12?value:0};})};
 }
 export function analyzePortfolio(state,catalog){
  const budget=parsePortfolioNumber(state.budget),validBudget=budget>0&&budget<=1e12,lookup=new Map(catalog.map(f=>[f.id,f]));
@@ -14,14 +14,16 @@ export function analyzePortfolio(state,catalog){
   const value=parsePortfolioNumber(row.value),valid=Number.isFinite(value)&&value>=0&&value<=(state.mode==='amount'?1e12:100);
   if(!valid)invalid=true;
   const amount=valid&&validBudget?(state.mode==='amount'?value:budget*value/100):0,fund=lookup.get(row.id);
-  const known=!!fund&&Number.isFinite(fund.fee)&&fund.fee>=0;
-  return {...row,fund,valid,amount,weight:validBudget?amount/budget*100:0,feeKnown:known,annualCost:known?amount*fund.fee/100:null,category:fund?.category||'unknown'};
+  const verified=!!fund&&Number.isFinite(fund.fee)&&fund.fee>=0,estimated=!verified&&state.includeReported===true&&Number.isFinite(fund?.reportedFee)&&fund.reportedFee>=0;
+  const rate=verified?fund.fee:estimated?fund.reportedFee:null,feeRate=rate===null?null:rate+(Number.isFinite(fund.extraFee)?fund.extraFee:0),known=feeRate!==null;
+  return {...row,fund,valid,amount,weight:validBudget?amount/budget*100:0,feeKnown:known,estimated,feeRate,annualCost:known?amount*feeRate/100:null,category:fund?.category||'unknown'};
  });
  const allocated=rows.reduce((n,r)=>n+r.amount,0),knownAmount=rows.reduce((n,r)=>n+(r.feeKnown?r.amount:0),0),annualKnownCost=rows.reduce((n,r)=>n+(r.annualCost??0),0);
  const weight=validBudget?allocated/budget*100:0,complete=validBudget&&!invalid&&rows.length>0&&Math.abs(weight-100)<1e-7,over=weight>100+1e-7;
  const coverage=allocated>0?knownAmount/allocated*100:0,allFeesKnown=rows.filter(r=>r.amount>0).every(r=>r.feeKnown);
  const groups=Object.entries(rows.reduce((out,r)=>{out[r.category]=(out[r.category]||0)+r.amount;return out;},{})).filter(([,amount])=>amount>0).map(([key,amount])=>({key,amount,share:allocated>0?amount/allocated*100:0})).sort((a,b)=>b.amount-a.amount);
- return {rows,budget,validBudget,invalid,allocated,weight,complete,over,remaining:validBudget?budget-allocated:0,coverage,allFeesKnown,annualKnownCost,annualCost:validBudget&&!invalid&&allFeesKnown&&allocated>0?annualKnownCost:null,weightedFee:!invalid&&allFeesKnown&&allocated>0?annualKnownCost/allocated*100:null,groups};
+ const estimatedAmount=rows.reduce((n,r)=>n+(r.estimated?r.amount:0),0);
+ return {estimatedAmount,rows,budget,validBudget,invalid,allocated,weight,complete,over,remaining:validBudget?budget-allocated:0,coverage,allFeesKnown,annualKnownCost,annualCost:validBudget&&!invalid&&allFeesKnown&&allocated>0?annualKnownCost:null,weightedFee:!invalid&&allFeesKnown&&allocated>0?annualKnownCost/allocated*100:null,groups};
 }
 export function convertPortfolioMode(state,mode){
  if(mode===state.mode)return state;
@@ -37,9 +39,9 @@ export function equalizePortfolio(state){
  values[n-1]=Number((total-base*(n-1)).toPrecision(14));
  return {...state,rows:state.rows.map((r,i)=>({...r,value:values[i]}))};
 }
-export function filterFunds(catalog,{query='',category='all',sort='default',selected=[]}={}){
- const q=query.trim().toLocaleLowerCase(),ids=new Set(selected);
- return catalog.filter(f=>(category==='all'||f.category===category)&&(q===''||[f.id,f.name,f.label,f.issuer,f.benchmark,f.exposure].some(x=>String(x).toLocaleLowerCase().includes(q)))).map((fund,index)=>({fund,index})).sort((a,b)=>{
+export function filterFunds(catalog,{query='',category='all',sort='default',selected=[],distribution='all',domicile='all'}={}){
+ let q=query.trim().toLocaleLowerCase();try{const url=new URL(q);if(url.hostname==='market.tase.co.il'){const match=url.pathname.match(/\/security\/(\d+)/);if(match)q=match[1];}}catch{}const ids=new Set(selected);
+ return catalog.filter(f=>(category==='all'||f.group===category||f.category===category)&&(distribution==='all'||f.distribution===distribution)&&(domicile==='all'||f.domicile===domicile)&&(q===''||[f.id,f.name,f.label,f.issuer,f.benchmark,f.exposure,f.isin,f.exchange].some(x=>String(x??'').toLocaleLowerCase().includes(q)))).map((fund,index)=>({fund,index})).sort((a,b)=>{
   const exact=Number(b.fund.id.toLowerCase()===q)-Number(a.fund.id.toLowerCase()===q);if(exact)return exact;
   if(sort==='fee')return (a.fund.fee??Infinity)-(b.fund.fee??Infinity)||a.fund.id.localeCompare(b.fund.id);
   if(sort==='name')return a.fund.name.localeCompare(b.fund.name);
