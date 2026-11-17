@@ -385,3 +385,14 @@ body{font-size:16px;line-height:1.65}nav a{font-size:14px}.quiet,.text-button,.p
 .portfolio-fill:not(:disabled):hover,.portfolio-return-reset:hover,.portfolio-compare-picker button:hover{background:#eee7d3;border-color:#b49b60;color:#66552e}
 .portfolio-mode button[aria-pressed=true]{background:#20251f;color:#fff}
 .portfolio-pie-panel .portfolio-pie-legend button:is(:hover,.is-active){background:#eee7d3;border-color:#b49b60}
+
+/* One compact control for the selected funds and their actions. */
+#portfolioSelectionBar:not(:empty){display:inline-flex;flex-wrap:nowrap;gap:0;padding:4px;border:1px solid #e5e3d9;border-radius:10px;background:#eeede5;max-width:100%;box-sizing:border-box}
+#portfolioSelectionBar>span{padding:0 12px;white-space:nowrap;color:#5d604f;font-variant-numeric:tabular-nums}
+#portfolioSelectionBar button{border:0;box-shadow:none;border-radius:7px;white-space:nowrap;min-height:40px}
+#portfolioSelectionBar [data-open-fund-comparison]{background:#b49b60;color:#20251f}
+#portfolioSelectionBar [data-open-fund-comparison]:disabled{background:#e5e3d9;color:#73766d;opacity:1}
+#portfolioSelectionBar [data-clear-fund-selection]{background:transparent;color:#666d62;margin-inline-start:4px}
+#portfolioSelectionBar [data-open-fund-comparison]:not(:disabled):hover{background:#c2aa72;box-shadow:0 0 0 2px #b49b6028}
+#portfolioSelectionBar [data-clear-fund-selection]:hover{background:#e5e3d9;color:#20251f;box-shadow:0 0 0 2px #b49b6020}
+@media(max-width:540px){#portfolioSelectionBar:not(:empty){width:100%}#portfolioSelectionBar [data-open-fund-comparison]{flex:1}#portfolioSelectionBar>span{padding-inline:9px}}

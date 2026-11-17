@@ -1,6 +1,6 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.22.9';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.22.9';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.22.9';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.22.10';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.22.10';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.22.10';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -58,7 +58,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   find('#portfolioView').innerHTML=`<div class="portfolio-library-head"><div><h2>${libraryTarget==='comparison'?'מוסיפים לתיק ההשוואה':'ספריית קרנות'}</h2><p>${funds.length} קרנות ומוצרים</p></div>${libraryOrigin==='compare'?'<button type="button" class="text-button" data-back-comparison>חזרה להשוואה</button>':info('catalog','נתוני הספרייה')}</div>
   <div class="portfolio-search-row"><label class="portfolio-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span class="sr-only">חיפוש קרנות</span><input type="search" id="portfolioSearch" placeholder="שם, סימול או מדד…" autocomplete="off" value="${esc(query)}"></label><button type="button" class="portfolio-filter-trigger" data-open-library-filters aria-haspopup="dialog" aria-controls="portfolioDialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7Z"/></svg><span>סינון ומיון</span><b data-filter-count hidden></b></button></div>
 
-  <div class="sr-only" id="portfolioSearchStatus" role="status"></div><div class="portfolio-library-tools"><div class="portfolio-view-switch" role="group" aria-label="תצוגת הספרייה"><button type="button" data-library-view="list">רשימה</button><button type="button" data-library-view="cards">כרטיסים</button></div><div id="portfolioSelectionBar"></div></div><div id="portfolioFundGrid"></div>`;
+  <div class="sr-only" id="portfolioSearchStatus" role="status"></div><div class="portfolio-library-tools"><div class="portfolio-view-switch" role="group" aria-label="תצוגת הספרייה"><button type="button" data-library-view="list">רשימה</button><button type="button" data-library-view="cards">כרטיסים</button></div><div id="portfolioSelectionBar" role="group" aria-label="קרנות שנבחרו להשוואה"></div></div><div id="portfolioFundGrid"></div>`;
   renderCards();
  }
  function openLibraryFilters(){
