@@ -409,3 +409,11 @@ body{font-size:16px;line-height:1.65}nav a{font-size:14px}.quiet,.text-button,.p
 .portfolio-library-title{display:flex;align-items:baseline;gap:12px;min-width:0}
 .portfolio-library-head .portfolio-library-title p{margin:0;white-space:nowrap}
 @media(max-width:540px){.portfolio-library-title{gap:8px}.portfolio-library-head .portfolio-library-title p{font-size:14px}}
+
+/* Fund actions share a single row in both the table and card layouts. */
+.portfolio-fund-action-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%;min-width:0}
+.portfolio-catalog .portfolio-catalog-actions .portfolio-fund-action-row>button,.portfolio-catalog .portfolio-catalog-actions .portfolio-fund-action-row>.portfolio-compare-choice{display:flex;align-items:center;justify-content:center;position:relative;width:100%;min-width:0;min-height:44px;padding:7px;margin:0!important;box-sizing:border-box;border-radius:8px}
+.portfolio-fund-action-row svg{display:block;width:20px;height:20px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.portfolio-catalog .portfolio-fund-action-row .portfolio-compare-choice input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.portfolio-fund-action-row .portfolio-compare-choice:has(input:checked):after{content:'✓';position:absolute;top:1px;inset-inline-end:3px;font-size:12px;line-height:1;font-weight:700}
+@media(hover:hover){.portfolio-fund-action-row>button:not(:disabled):hover{box-shadow:0 0 0 3px #b49b6028;filter:brightness(1.04)}}

@@ -1,6 +1,6 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.22.12';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.22.12';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.22.12';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.22.13';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.22.13';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.22.13';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -76,7 +76,10 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   return `<bdi class="portfolio-ticker">${f.id}</bdi>`;
  }
  function fundCompareChoice(f){
-  return `<label class="portfolio-compare-choice"><input type="checkbox" data-select-fund="${f.id}" aria-label="השוואת ${f.id}" ${fundSelection.includes(f.id)?'checked':''} ${fundSelection.length>=3&&!fundSelection.includes(f.id)?'disabled':''}><span>להשוואה</span></label>`;
+  return `<label class="portfolio-compare-choice" title="בחירה להשוואה"><input type="checkbox" data-select-fund="${f.id}" aria-label="השוואת ${f.id}" ${fundSelection.includes(f.id)?'checked':''} ${fundSelection.length>=3&&!fundSelection.includes(f.id)?'disabled':''}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="7" height="14" rx="1.5"/><rect x="14" y="5" width="7" height="14" rx="1.5"/></svg></label>`;
+ }
+ function fundActions(f,added){
+  return `<div class="portfolio-fund-action-row"><button type="button" class="primary" data-add-fund="${f.id}" ${added?'disabled':''} aria-label="${added?'כבר בתיק':'הוספת'} ${f.id}" title="${added?'כבר בתיק':'הוספה לתיק'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${added?'m5 12 4 4L19 6':'M12 5v14M5 12h14'}"/></svg></button><button type="button" class="text-button" data-fund-details="${f.id}" aria-label="פרטי ${f.id}" title="פרטים ומקור"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v.5"/></svg></button>${fundCompareChoice(f)}</div>`;
  }
  function renderCards(){
   const target=libraryTarget==='comparison'?comparison:state,selected=target.rows.map(r=>r.id),matches=filterFunds(funds,{query,category,sort,selected,distribution,domicile});
@@ -89,7 +92,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   let previousGroup=null;
   find('#portfolioFundGrid').innerHTML=matches.length?`<table class="portfolio-catalog-table"><caption class="sr-only">ספריית קרנות להשוואה ולהוספה לתיק</caption><thead><tr>${['סימול / מספר','שם רשמי','עלות בשנה','מדינה','מטבע מסחר','חלוקת דיבידנדים','עקיבה וגידור','פעולות'].map(x=>`<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${matches.map(f=>{
    const added=selected.includes(f.id),cost=annualFundCost(f),siblings=funds.filter(x=>x.id!==f.id&&x.fundKey===f.fundKey),group=libraryView==='cards'&&sort==='default'&&previousGroup!==f.group?`<tr class="portfolio-group-heading"><th colspan="8" scope="colgroup">${esc(fundGroups[f.group]||'נוספים')}</th></tr>`:'';previousGroup=f.group;
-   return `${group}<tr class="portfolio-catalog-fund"><td class="portfolio-code-cell">${fundIdentity(f)}</td><td data-label="שם רשמי" class="portfolio-official-cell"><span dir="${/[א-ת]/.test(f.name)?'rtl':'ltr'}">${esc(f.name)}</span>${siblings.length?`<small>אותה קרן גם ב־<bdi>${siblings.map(x=>esc(x.id)).join(' / ')}</bdi></small>`:''}</td><td data-label="עלות בשנה" class="portfolio-cost-cell">${cost===null?'<span class="portfolio-unverified">לא אומתה</span>':pct(cost)}</td><td data-label="מדינה">${esc(f.domicile)}</td><td data-label="מטבע מסחר"><bdi>${esc(f.currency)}</bdi></td><td data-label="חלוקת דיבידנדים">${esc(f.distribution)}</td><td data-label="עקיבה וגידור" class="portfolio-method-cell"><span>${esc(f.replication)}</span><span>${esc(f.hedging)}</span></td><td class="portfolio-catalog-actions"><button type="button" class="primary" data-add-fund="${f.id}" ${added?'disabled':''} aria-label="${added?'כבר בתיק':'הוספת'} ${f.id}">${added?'✓ בתיק':'＋ הוספה'}</button><button type="button" class="text-button" data-fund-details="${f.id}" aria-label="פרטי ${f.id}">פרטים ומקור</button>${fundCompareChoice(f)}</td></tr>`;
+   return `${group}<tr class="portfolio-catalog-fund"><td class="portfolio-code-cell">${fundIdentity(f)}</td><td data-label="שם רשמי" class="portfolio-official-cell"><span dir="${/[א-ת]/.test(f.name)?'rtl':'ltr'}">${esc(f.name)}</span>${siblings.length?`<small>אותה קרן גם ב־<bdi>${siblings.map(x=>esc(x.id)).join(' / ')}</bdi></small>`:''}</td><td data-label="עלות בשנה" class="portfolio-cost-cell">${cost===null?'<span class="portfolio-unverified">לא אומתה</span>':pct(cost)}</td><td data-label="מדינה">${esc(f.domicile)}</td><td data-label="מטבע מסחר"><bdi>${esc(f.currency)}</bdi></td><td data-label="חלוקת דיבידנדים">${esc(f.distribution)}</td><td data-label="עקיבה וגידור" class="portfolio-method-cell"><span>${esc(f.replication)}</span><span>${esc(f.hedging)}</span></td><td class="portfolio-catalog-actions">${fundActions(f,added)}</td></tr>`;
   }).join('')}</tbody></table>`:`<div class="portfolio-empty-search"><h3>לא נמצאו קרנות</h3><button type="button" class="text-button" data-clear-filters>איפוס חיפוש וסינון</button></div>`;
  }
  function advantageCell(metric,index,value,{win='יתרון במדד',other='פחות עדיף במדד',historical=false}={}){
