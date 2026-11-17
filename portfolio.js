@@ -1,6 +1,6 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,comparisonPriorities,rankComparisonMetric} from './portfolio-insights.js?v=1.21.15';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.21.15';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.21.15';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,comparisonPriorities,rankComparisonMetric} from './portfolio-insights.js?v=1.21.16';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.21.16';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.21.16';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -38,7 +38,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
 
  function showDialog(title,body){
   find('#portfolioDialogTitle').textContent=title;find('#portfolioDialogBody').innerHTML=body;
-  const dialog=find('#portfolioDialog');if(!dialog.open)dialog.showModal();
+  const dialog=find('#portfolioDialog');if(!dialog.open)dialog.showModal();dialog.scrollTop=0;
   if(!motion())dialog.animate([{opacity:0,transform:'translateY(5px)'},{opacity:1,transform:'translateY(0)'}],{duration:150,easing:'ease-out'});
  }
  let closing=false;
@@ -56,10 +56,21 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  }
  function renderLibrary(){
   find('#portfolioView').innerHTML=`<div class="portfolio-library-head"><div><h2>${libraryTarget==='comparison'?'מוסיפים לתיק ההשוואה':'ספריית קרנות'}</h2><p>${funds.length} קרנות ומוצרים</p></div>${libraryTarget==='comparison'?'<button type="button" class="text-button" data-back-comparison>חזרה להשוואה</button>':info('catalog','נתוני הספרייה')}</div>
-  <label class="portfolio-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span class="sr-only">חיפוש קרנות</span><input type="search" id="portfolioSearch" placeholder="שם, סימול או מדד…" autocomplete="off" value="${esc(query)}"></label>
-  <details class="portfolio-filters"><summary>סינון ומיון <span>${esc(category==='all'?'כל הקטגוריות':fundGroups[category]||category)}</span></summary><div class="portfolio-filter-options"><div class="portfolio-chips" role="group" aria-label="קטגוריות">${[['all','הכול'],...Object.entries(fundGroups)].map(([key,label])=>`<button type="button" data-category="${key}" aria-pressed="${category===key}">${label} <small>${key==='all'?funds.length:funds.filter(f=>f.group===key).length}</small></button>`).join('')}</div><div class="portfolio-chips" role="group" aria-label="חלוקת דיבידנד">${['all','צוברת','מחלקת','ללא חלוקה'].map(value=>`<button type="button" data-distribution="${value}" aria-pressed="${distribution===value}">${value==='all'?'כל סוגי החלוקה':value}</button>`).join('')}</div><div class="portfolio-chips" role="group" aria-label="מדינה">${['all',...new Set(funds.map(f=>f.domicile))].map(value=>`<button type="button" data-domicile="${esc(value)}" aria-pressed="${domicile===value}">${value==='all'?'כל המדינות':value}</button>`).join('')}</div><div class="portfolio-sort" role="group" aria-label="מיון קרנות"><button type="button" data-sort="default" aria-pressed="${sort==='default'}">קבוצות נפוצות</button><button type="button" data-sort="fee" aria-pressed="${sort==='fee'}">דמי ניהול ↑</button><button type="button" data-sort="name" aria-pressed="${sort==='name'}">שם</button></div></div></details>
+  <div class="portfolio-search-row"><label class="portfolio-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span class="sr-only">חיפוש קרנות</span><input type="search" id="portfolioSearch" placeholder="שם, סימול או מדד…" autocomplete="off" value="${esc(query)}"></label><button type="button" class="portfolio-filter-trigger" data-open-library-filters aria-haspopup="dialog" aria-controls="portfolioDialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7Z"/></svg><span>סינון ומיון</span><b data-filter-count hidden></b></button></div>
+
   <div class="sr-only" id="portfolioSearchStatus" role="status"></div><div class="portfolio-library-tools"><div class="portfolio-view-switch" role="group" aria-label="תצוגת הספרייה"><button type="button" data-library-view="list">רשימה</button><button type="button" data-library-view="cards">כרטיסים</button></div><div id="portfolioSelectionBar"></div><div id="portfolioLibraryBalance"></div></div><div id="portfolioFundGrid"></div>`;
   renderCards();
+ }
+ function openLibraryFilters(){
+  showDialog('סינון ומיון',`<div class="portfolio-filter-dialog"><div class="portfolio-filter-options"><h3>קטגוריה</h3><div class="portfolio-chips" role="group" aria-label="קטגוריות">${[['all','הכול'],...Object.entries(fundGroups)].map(([key,label])=>`<button type="button" data-category="${key}" aria-pressed="${category===key}">${label} <small>${key==='all'?funds.length:funds.filter(f=>f.group===key).length}</small></button>`).join('')}</div><h3>דיבידנדים</h3><div class="portfolio-chips" role="group" aria-label="חלוקת דיבידנד">${['all','צוברת','מחלקת','ללא חלוקה'].map(value=>`<button type="button" data-distribution="${value}" aria-pressed="${distribution===value}">${value==='all'?'כל סוגי החלוקה':value}</button>`).join('')}</div><h3>מדינה</h3><div class="portfolio-chips" role="group" aria-label="מדינה">${['all',...new Set(funds.map(f=>f.domicile))].map(value=>`<button type="button" data-domicile="${esc(value)}" aria-pressed="${domicile===value}">${value==='all'?'כל המדינות':value}</button>`).join('')}</div><h3>מיון</h3><div class="portfolio-sort" role="group" aria-label="מיון קרנות"><button type="button" data-sort="default" aria-pressed="${sort==='default'}">קבוצות נפוצות</button><button type="button" data-sort="fee" aria-pressed="${sort==='fee'}">דמי ניהול ↑</button><button type="button" data-sort="name" aria-pressed="${sort==='name'}">שם</button></div></div><div class="portfolio-filter-footer"><button type="button" class="text-button" data-reset-library-filters>איפוס סינון</button><button type="button" class="primary" data-close-portfolio-dialog data-filter-results></button></div></div>`);
+  syncLibraryFilterUI(filterFunds(funds,{query,category,sort,distribution,domicile}).length);
+ }
+ function syncLibraryFilterUI(count){
+  const active=Number(category!=='all')+Number(distribution!=='all')+Number(domicile!=='all')+Number(sort!=='default'),trigger=find('[data-open-library-filters]'),badge=find('[data-filter-count]');
+  if(trigger){trigger.classList.toggle('has-filters',active>0);trigger.setAttribute('aria-label',active?`סינון ומיון, ${active} בחירות פעילות`:'סינון ומיון');}
+  if(badge){badge.hidden=active===0;badge.textContent=active;}
+  for(const [key,value] of Object.entries({category,distribution,domicile,sort}))all(`[data-${key}]`).forEach(button=>button.setAttribute('aria-pressed',String(button.dataset[key]===value)));
+  const results=find('[data-filter-results]');if(results)results.textContent=`הצגת ${count} קרנות`;
  }
  function fundIdentity(f){
   return `<bdi class="portfolio-ticker">${f.id}</bdi>`;
@@ -70,6 +81,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  function renderCards(){
   const target=libraryTarget==='comparison'?comparison:state,selected=target.rows.map(r=>r.id),matches=filterFunds(funds,{query,category,sort,selected,distribution,domicile});
   renderMobileBar(analyzePortfolio(state,funds));
+  syncLibraryFilterUI(matches.length);
   find('#portfolioSearchStatus').textContent=`${matches.length} קרנות נמצאו`;
   find('#portfolioFundGrid').className=`portfolio-catalog ${libraryView==='cards'?'is-card-view':''}`;
   all('[data-library-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.libraryView===libraryView)));
@@ -302,6 +314,8 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   if(button.dataset.compareRemove){comparison.rows=comparison.rows.filter(r=>r.id!==button.dataset.compareRemove);persistComparison();renderComparison();return;}
   if(button.hasAttribute('data-compare-equal')){comparison=equalizePortfolio(comparison);persistComparison();renderComparison();return;}
   if(button.hasAttribute('data-save-comparison')){const a=analyzePortfolio(comparison,funds);if(a.invalid||!a.validBudget||a.over||!comparison.rows.length){notify('יש לתקן את הקצאת החלופה לפני שמירה.');return;}onSave({...normalizePortfolio(comparison),catalogVersion});return;}
+  if(button.hasAttribute('data-open-library-filters')){openLibraryFilters();return;}
+  if(button.hasAttribute('data-reset-library-filters')){category='all';distribution='all';domicile='all';sort='default';renderCards();return;}
   if(button.dataset.distribution){distribution=button.dataset.distribution;all('[data-distribution]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.distribution===distribution)));renderCards();return;}
   if(button.dataset.domicile){domicile=button.dataset.domicile;all('[data-domicile]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.domicile===domicile)));renderCards();return;}
   if(button.dataset.portfolioTab){setTab(button.dataset.portfolioTab,{focus:true});return;}
@@ -317,7 +331,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   if(button.dataset.resetRowReturn||button.dataset.resetCompareReturn){const alt=!!button.dataset.resetCompareReturn,id=button.dataset.resetRowReturn||button.dataset.resetCompareReturn,target=alt?comparison:state,row=target?.rows.find(r=>r.id===id),rate=funds.find(f=>f.id===id)?.history?.rate;if(!row||!Number.isFinite(rate))return;delete row.annualReturn;const field=all(alt?'[data-compare-return]':'[data-row-return]').find(e=>(alt?e.dataset.compareReturn:e.dataset.rowReturn)===id);if(field)field.value=rate;if(alt){persistComparison();renderComparisonResults();}else update();field?.focus({preventScroll:true});return;}
   if(button.hasAttribute('data-reset-returns')){state.rows.forEach(row=>delete row.annualReturn);update();renderBuilder();return;}
   if(button.hasAttribute('data-equalize')){const s=analyzePortfolio(state,funds);if(!s.validBudget){notify('הזינו סכום תיק תקין לפני חלוקה שווה.');return;}state=equalizePortfolio(state);update();renderBuilder();return;}
-  if(button.dataset.category){category=button.dataset.category;all('[data-category]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.category===category)));find('.portfolio-filters summary span').textContent=category==='all'?'כל הקטגוריות':fundGroups[category];renderCards();return;}
+  if(button.dataset.category){category=button.dataset.category;all('[data-category]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.category===category)));renderCards();return;}
   if(button.dataset.sort){sort=sort===button.dataset.sort?'default':button.dataset.sort;all('[data-sort]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.sort===sort)));renderCards();return;}
   if(button.hasAttribute('data-clear-filters')){query='';category='all';sort='default';distribution='all';domicile='all';renderLibrary();find('#portfolioSearch').focus();return;}
   if(button.dataset.comparisonPriority){comparisonPriority=button.dataset.comparisonPriority;renderComparisonResults();find(`[data-comparison-priority="${comparisonPriority}"]`)?.focus({preventScroll:true});return;}
