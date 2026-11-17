@@ -226,5 +226,7 @@ body{font-size:16px;line-height:1.65}nav a{font-size:14px}.quiet,.text-button,.p
 
 /* Shared vector mark for the portfolio page, home card and mobile navigation. */
 .portfolio-page-mark{display:block;width:32px;height:32px;flex-shrink:0;overflow:visible}
-.mobile-current-icon .portfolio-page-mark,.mobile-nav-links .portfolio-page-mark{width:24px;height:24px}
+.mobile-current-icon .portfolio-page-mark,.mobile-nav nav .portfolio-page-mark{width:24px;height:24px}
 @media(max-width:540px){.tool-icon .portfolio-page-mark{width:29px;height:29px}}
+
+.mobile-nav[open] summary .portfolio-page-mark{transform:none}
