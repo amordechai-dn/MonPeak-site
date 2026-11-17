@@ -1,6 +1,6 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.22.7';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.22.7';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.22.7';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.22.8';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.22.8';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.22.8';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -85,7 +85,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   find('#portfolioSearchStatus').textContent=`${matches.length} קרנות נמצאו`;
   find('#portfolioFundGrid').className=`portfolio-catalog ${libraryView==='cards'?'is-card-view':''}`;
   all('[data-library-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.libraryView===libraryView)));
-  find('#portfolioSelectionBar').innerHTML=fundSelection.length?`<span>${fundSelection.length} נבחרו</span><button type="button" class="text-button" data-open-fund-comparison ${fundSelection.length<2?'disabled':''}>השוואת קרנות</button><button type="button" class="quiet" data-clear-fund-selection>ניקוי</button>`:'<span>סמנו 2–3 קרנות להשוואה</span>';
+  find('#portfolioSelectionBar').innerHTML=fundSelection.length?`<span>${fundSelection.length} נבחרו</span><button type="button" class="text-button" data-open-fund-comparison ${fundSelection.length<2?'disabled':''}>השוואת קרנות</button><button type="button" class="quiet" data-clear-fund-selection>ניקוי</button>`:'';
   const balance=analyzePortfolio(target,funds);
   find('#portfolioLibraryBalance').innerHTML=`<strong class="${balance.over?'target-missed':balance.complete?'target-met':''}">${balance.invalid?'יש לתקן הקצאות':balance.over?'חריגה '+pct(balance.weight-100):'נותרו '+pct(Math.max(0,100-balance.weight))}</strong><button type="button" class="text-button" ${libraryOrigin==='compare'?'data-back-comparison':'data-edit-current'}>${libraryOrigin==='compare'?'חזרה להשוואה':'לתיק שלי'}</button>`;
   let previousGroup=null;
