@@ -1,6 +1,6 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,comparisonPriorities,rankComparisonMetric} from './portfolio-insights.js?v=1.21.6';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.21.6';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.21.6';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,comparisonPriorities,rankComparisonMetric} from './portfolio-insights.js?v=1.21.7';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.21.7';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.21.7';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -8,7 +8,7 @@ const pct=n=>!Number.isFinite(n)?'—':`<bdi>${number(n,4)}%</bdi>`;
 const annualFundCost=f=>Number.isFinite(f.fee)?f.fee+(Number.isFinite(f.extraFee)?f.extraFee:0):null;
 const feeSourceURL=f=>f.feeSource||f.source;
 const feeSourceLabel=f=>f.feeStatus==='reference'?'זינוק פיננסי':'מקור רשמי';
-const feeSourceNote=f=>f.feeStatus==='reference'?'<small>דמי ניהול · לפי זינוק</small>':'';
+const feeSourceNote=f=>f.feeStatus==='reference'?'<small>לפי זינוק</small>':'';
 const referenceCostNote='דמי ניהול בקרנות ישראליות לפי זינוק. שכר נאמן ועלויות נוספות שלא פורטו במקור אינם כלולים.';
 const returnPct=n=>!Number.isFinite(n)?'—':`<bdi>${number(n,2)}%</bdi>`;
 const reviewDate=value=>value?String(value).split('-').reverse().join('.'):'טרם אומת';

@@ -279,3 +279,52 @@ body{font-size:16px;line-height:1.65}nav a{font-size:14px}.quiet,.text-button,.p
 .portfolio-catalog-table{direction:rtl}.portfolio-catalog-table .portfolio-code-cell,.portfolio-catalog-table .portfolio-official-cell{text-align:right}.portfolio-listing-code{display:inline-flex;direction:rtl;align-items:center;justify-content:flex-start;gap:8px;max-width:100%;cursor:pointer}.portfolio-listing-code input{width:18px;height:18px;margin:0;flex-shrink:0;accent-color:#355b43;cursor:pointer}.portfolio-listing-code .portfolio-ticker{direction:ltr;unicode-bidi:isolate;white-space:nowrap}.portfolio-official-cell small{text-align:right}
 
 .portfolio-catalog-actions .portfolio-compare-choice{display:flex;direction:rtl;align-items:center;justify-content:center;gap:8px;min-height:36px;margin-top:7px;padding:5px 8px;border:1px solid #d7ddcd;border-radius:7px;background:#f4f5ed;color:#435b38;font-size:14px;cursor:pointer;transition:background .15s,box-shadow .15s}.portfolio-compare-choice input{width:18px;height:18px;margin:0;accent-color:#355b43;cursor:pointer}.portfolio-compare-choice:hover{background:#e7ecd9;box-shadow:0 0 0 3px #b49b6028}.portfolio-compare-choice:has(input:checked){background:#e4eadb;border-color:#9bac88}.portfolio-compare-choice:has(input:disabled){opacity:.5;cursor:default}.portfolio-compare-choice:focus-within{outline:2px solid #a88d4e;outline-offset:2px}.is-card-view .portfolio-catalog-actions{flex-wrap:wrap}.is-card-view .portfolio-catalog-actions .portfolio-compare-choice{flex-basis:100%;margin:0}@media(max-width:800px){.portfolio-catalog-actions{flex-wrap:wrap}.portfolio-catalog-actions .portfolio-compare-choice{flex-basis:100%;margin:0}}
+
+/* Compact fund cards: shared identity row, grouped facts and one actions row. */
+
+.is-card-view .portfolio-catalog-table .portfolio-catalog-fund{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px 8px;padding:14px;align-items:start;align-content:start}
+.is-card-view .portfolio-catalog-table .portfolio-catalog-fund>td{padding:0;min-width:0;order:0;border:0}
+.is-card-view .portfolio-catalog-table .portfolio-code-cell{grid-column:1/3;grid-row:1;align-self:start}
+.is-card-view .portfolio-code-cell .portfolio-ticker{display:inline-block;max-width:100%;box-sizing:border-box;padding:5px 7px;font-size:16px;line-height:1.4;letter-spacing:0;white-space:nowrap}
+.is-card-view .portfolio-catalog-table .portfolio-official-cell{grid-column:3/-1;grid-row:1}
+.is-card-view .portfolio-official-cell>span{font-size:15px;line-height:1.5;font-weight:500;text-align:right;overflow-wrap:normal;word-break:normal}
+.is-card-view .portfolio-official-cell small{font-size:13px;line-height:1.5;margin-top:4px}
+.is-card-view .portfolio-catalog-table .portfolio-cost-cell{grid-column:1/3;grid-row:2;display:flex!important;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px;padding-top:0!important;border-top:0!important;white-space:normal;font-size:17px;line-height:1.4}
+.is-card-view .portfolio-catalog-table .portfolio-catalog-fund>td:nth-child(4){grid-column:3/5;grid-row:2}
+.is-card-view .portfolio-catalog-table .portfolio-catalog-fund>td:nth-child(5){grid-column:5/-1;grid-row:2}
+.is-card-view .portfolio-catalog-table .portfolio-catalog-fund>td:nth-child(6){grid-column:1/3;grid-row:3}
+.is-card-view .portfolio-catalog-table .portfolio-method-cell{grid-column:3/-1;grid-row:3}
+.is-card-view .portfolio-catalog-table .portfolio-catalog-fund>td[data-label]:before{font-size:13px;line-height:1.4;margin:0 0 3px;color:#65745c;font-weight:400}
+.is-card-view .portfolio-catalog-table .portfolio-official-cell:before{display:none}
+.is-card-view .portfolio-method-cell span{font-size:14px;line-height:1.5}
+.is-card-view .portfolio-catalog-table .portfolio-catalog-actions{grid-column:1/-1;grid-row:4;display:flex;flex-wrap:nowrap;gap:6px;align-items:stretch;padding-top:10px;border-top:1px solid #e2e7d8}
+.is-card-view .portfolio-catalog-actions button,.is-card-view .portfolio-catalog-actions .portfolio-compare-choice{flex:1 1 0;min-width:0;min-height:40px;padding:6px 5px;margin:0!important;font-size:14px;line-height:1.4;white-space:normal;box-sizing:border-box}
+.is-card-view .portfolio-catalog-actions .portfolio-compare-choice{gap:5px;flex-basis:0}
+.is-card-view .portfolio-catalog-actions .portfolio-compare-choice input{width:16px;height:16px;flex-shrink:0}
+
+@media(max-width:800px){
+
+.portfolio-catalog .portfolio-catalog-table .portfolio-catalog-fund{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px 8px;padding:14px;align-items:start;align-content:start}
+.portfolio-catalog .portfolio-catalog-table .portfolio-catalog-fund>td{padding:0;min-width:0;order:0;border:0}
+.portfolio-catalog .portfolio-catalog-table .portfolio-code-cell{grid-column:1/3;grid-row:1;align-self:start}
+.portfolio-catalog .portfolio-code-cell .portfolio-ticker{display:inline-block;max-width:100%;box-sizing:border-box;padding:5px 7px;font-size:16px;line-height:1.4;letter-spacing:0;white-space:nowrap}
+.portfolio-catalog .portfolio-catalog-table .portfolio-official-cell{grid-column:3/-1;grid-row:1}
+.portfolio-catalog .portfolio-official-cell>span{font-size:15px;line-height:1.5;font-weight:500;text-align:right;overflow-wrap:normal;word-break:normal}
+.portfolio-catalog .portfolio-official-cell small{font-size:13px;line-height:1.5;margin-top:4px}
+.portfolio-catalog .portfolio-catalog-table .portfolio-cost-cell{grid-column:1/3;grid-row:2;display:flex!important;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px;padding-top:0!important;border-top:0!important;white-space:normal;font-size:17px;line-height:1.4}
+.portfolio-catalog .portfolio-catalog-table .portfolio-catalog-fund>td:nth-child(4){grid-column:3/5;grid-row:2}
+.portfolio-catalog .portfolio-catalog-table .portfolio-catalog-fund>td:nth-child(5){grid-column:5/-1;grid-row:2}
+.portfolio-catalog .portfolio-catalog-table .portfolio-catalog-fund>td:nth-child(6){grid-column:1/3;grid-row:3}
+.portfolio-catalog .portfolio-catalog-table .portfolio-method-cell{grid-column:3/-1;grid-row:3}
+.portfolio-catalog .portfolio-catalog-table .portfolio-catalog-fund>td[data-label]:before{font-size:13px;line-height:1.4;margin:0 0 3px;color:#65745c;font-weight:400}
+.portfolio-catalog .portfolio-catalog-table .portfolio-official-cell:before{display:none}
+.portfolio-catalog .portfolio-method-cell span{font-size:14px;line-height:1.5}
+.portfolio-catalog .portfolio-catalog-table .portfolio-catalog-actions{grid-column:1/-1;grid-row:4;display:flex;flex-wrap:nowrap;gap:6px;align-items:stretch;padding-top:10px;border-top:1px solid #e2e7d8}
+.portfolio-catalog .portfolio-catalog-actions button,.portfolio-catalog .portfolio-catalog-actions .portfolio-compare-choice{flex:1 1 0;min-width:0;min-height:40px;padding:6px 5px;margin:0!important;font-size:14px;line-height:1.4;white-space:normal;box-sizing:border-box}
+.portfolio-catalog .portfolio-catalog-actions .portfolio-compare-choice{gap:5px;flex-basis:0}
+.portfolio-catalog .portfolio-catalog-actions .portfolio-compare-choice input{width:16px;height:16px;flex-shrink:0}
+
+}
+
+.is-card-view .portfolio-catalog-table tbody{align-items:start}@media(max-width:800px){.portfolio-catalog-table tbody{align-items:start}}
+.portfolio-catalog-actions .portfolio-compare-choice span{white-space:nowrap}@media(max-width:360px){.portfolio-catalog .portfolio-catalog-actions .portfolio-compare-choice{font-size:13px;gap:4px;padding-inline:3px}.portfolio-catalog .portfolio-catalog-actions .portfolio-compare-choice input{width:14px;height:14px}}
