@@ -396,3 +396,11 @@ body{font-size:16px;line-height:1.65}nav a{font-size:14px}.quiet,.text-button,.p
 #portfolioSelectionBar [data-open-fund-comparison]:not(:disabled):hover{background:#c2aa72;box-shadow:0 0 0 2px #b49b6028}
 #portfolioSelectionBar [data-clear-fund-selection]:hover{background:#e5e3d9;color:#20251f;box-shadow:0 0 0 2px #b49b6020}
 @media(max-width:540px){#portfolioSelectionBar:not(:empty){width:100%}#portfolioSelectionBar [data-open-fund-comparison]{flex:1}#portfolioSelectionBar>span{padding-inline:9px}}
+
+/* View mode sits at the RTL start of the search controls. */
+.portfolio-search-row{grid-template-columns:auto minmax(0,1fr) auto;margin-bottom:16px}
+.portfolio-search-row .portfolio-view-switch{display:flex;align-items:stretch;align-self:stretch}
+.portfolio-search-row .portfolio-view-switch button{white-space:nowrap}
+.portfolio-library-tools:has(#portfolioSelectionBar:empty){display:none}
+.portfolio-library-tools{justify-content:flex-end}
+@media(max-width:540px){.portfolio-search-row .portfolio-view-switch{gap:2px;padding:3px}.portfolio-search-row .portfolio-view-switch button{padding:6px 7px;min-height:44px;font-size:13px}.portfolio-search-row .portfolio-filter-trigger{width:44px;padding:8px;position:relative}.portfolio-search-row .portfolio-filter-trigger>span{display:none}.portfolio-search-row .portfolio-filter-trigger b:not([hidden]){position:absolute;top:-7px;inset-inline-end:-5px;min-width:18px;height:18px;font-size:12px}.portfolio-search-row .portfolio-search{padding-inline:9px}.portfolio-search-row .portfolio-search>svg{display:none}}
