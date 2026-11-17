@@ -1,5 +1,5 @@
-import {scorePortfolioReference} from './portfolio-scoring.js?v=1.22.2';
-import {analyzePortfolio,normalizePortfolio,projectPortfolio} from './portfolio-model.js?v=1.22.2';
+import {scorePortfolioReference} from './portfolio-scoring.js?v=1.22.3';
+import {analyzePortfolio,normalizePortfolio,projectPortfolio} from './portfolio-model.js?v=1.22.3';
 export const templates=[
  {id:'world-value',name:'עולמי, ערך וקריפטו · 65/30/5',description:'מדד שווקים מפותחים, קרן אקטיבית למניות קטנות עם הטיית ערך, וביטקוין.',rows:[['1185164',65],['AVGS',30],['IBIT',5]]},
  {id:'broad',name:'פיזור רחב',description:'ארה״ב, אירופה, שווקים מתעוררים, ישראל, אג״ח קצרות וביטקוין.',rows:[['1183441',40],['1159094',20],['1183490',10],['1146356',5],['1144591',20],['IBIT',5]]},
@@ -68,12 +68,13 @@ export function comparePortfolioAdvantages(left,right,catalog,priority='balanced
  const plans=[left,right],insights=plans.map(p=>portfolioInsights(p,catalog)),projections=plans.map(p=>projectPortfolio(p,catalog)),a=insights.map(i=>i.analysis),preference=comparisonPriorities[priority]||comparisonPriorities.balanced;
  const metric=(key,lower=false)=>rankComparisonMetric(insights.map(i=>i.scores.find(s=>s.key===key)?.value??null),{lower});
  const metrics={cost:rankComparisonMetric(a.map(x=>x.weightedFee),{lower:true}),diversification:metric('diversification'),simplicity:metric('simplicity')};
+ const scoreMetrics={cost:metric('cost'),diversification:metrics.diversification,simplicity:metrics.simplicity};
  const coverageMatches=Math.abs(projections[0].includedWeight-projections[1].includedWeight)<1e-6;
  metrics.returns=coverageMatches?rankComparisonMetric(projections.map(p=>p.gross),{tolerance:.005}):{status:'incomparable',best:[],values:projections.map(p=>p.gross)};
  const provisional=a.some(x=>x.estimatedAmount>0),valid=insights.every(i=>i.available)&&Object.values(metrics).slice(0,3).every(m=>m.status!=='missing');
- if(!valid)return {status:'incomplete',winner:null,metrics,totals:[null,null],preference,provisional,projections};
+ if(!valid)return {status:'incomplete',winner:null,metrics,scoreMetrics,totals:[null,null],preference,provisional,projections};
  const totals=insights.map(i=>Object.entries(preference.weights).reduce((sum,[key,weight])=>sum+weight*i.scores.find(s=>s.key===key).value,0));
  const deltas=['cost','diversification','simplicity'].map(key=>insights[1].scores.find(s=>s.key===key).value-insights[0].scores.find(s=>s.key===key).value),up=deltas.some(x=>x>=.5),down=deltas.some(x=>x<=-.5),mixed=up&&down;
  const winner=mixed||!up&&!down?null:up?1:0;
- return {status:mixed?'mixed':winner===null?'tie':provisional?'provisional':'ranked',winner,metrics,totals,preference,provisional,projections,mixed};
+ return {status:mixed?'mixed':winner===null?'tie':provisional?'provisional':'ranked',winner,metrics,scoreMetrics,totals,preference,provisional,projections,mixed};
 }
