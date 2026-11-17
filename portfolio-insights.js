@@ -1,4 +1,5 @@
-import {analyzePortfolio,normalizePortfolio,projectPortfolio} from './portfolio-model.js?v=1.21.18';
+import {scorePortfolioReference} from './portfolio-scoring.js?v=1.22.0';
+import {analyzePortfolio,normalizePortfolio,projectPortfolio} from './portfolio-model.js?v=1.22.0';
 export const templates=[
  {id:'world-value',name:'עולמי, ערך וקריפטו · 65/30/5',description:'מדד שווקים מפותחים, קרן אקטיבית למניות קטנות עם הטיית ערך, וביטקוין.',rows:[['1185164',65],['AVGS',30],['IBIT',5]]},
  {id:'broad',name:'פיזור רחב',description:'ארה״ב, אירופה, שווקים מתעוררים, ישראל, אג״ח קצרות וביטקוין.',rows:[['1183441',40],['1159094',20],['1183490',10],['1146356',5],['1144591',20],['IBIT',5]]},
@@ -18,21 +19,8 @@ export function portfolioInsights(state,catalog){
  const warnings=[];
  for(const rows of fundGroups.values())if(rows.length>1)warnings.push({kind:'same-fund',text:`${rows.map(r=>r.id).join(' / ')} הם רישומים של אותה קרן; מטבע מסחר שונה אינו מוסיף פיזור.`});
  for(const [index,rows] of indexGroups)if(new Set(rows.map(r=>r.fund.fundKey||r.id)).size>1)warnings.push({kind:'same-index',text:`${rows.map(r=>r.id).join(' / ')} עוקבים אחר ${index}. זו חפיפה במדד, לא חישוב חפיפה באחוזי ההחזקות.`});
- const costScore=a.weightedFee===null?null:a.weightedFee<=.1?10:a.weightedFee<=.2?9:a.weightedFee<=.3?8:a.weightedFee<=.5?6:a.weightedFee<=1?4:a.weightedFee<=2?2:1;
- const concentrated=active.filter(r=>['crypto','commodities'].includes(r.category)||['1143726','1183953','1150267'].includes(r.id)).reduce((n,r)=>n+r.weight,0);
- const penalties=[];let diversification=10;
- if(concentrated>=50){diversification-=4;penalties.push('4−: לפחות מחצית התיק במוצרים על נכס בודד או ענף ממוקד.');}else if(concentrated>=25){diversification-=2;penalties.push('2−: לפחות רבע מהתיק במוצרים על נכס בודד או ענף ממוקד.');}
- // Assess each country separately; do not classify a US+Israel mix as one country.
- const countryWeights={};for(const row of active){const f=row.fund;if(row.category!=='stocks'||!f)continue;const region=f.region||(['sp500','other-us'].includes(f.group)?'ארה״ב':f.group==='telaviv'?'ישראל':null);if(region&&['ארה״ב','ישראל'].includes(region))countryWeights[region]=(countryWeights[region]||0)+row.weight;}
- const largestCountry=Math.max(0,...Object.values(countryWeights));
- if(largestCountry>80){diversification-=2;penalties.push('2−: מעל 80% במניות בעלות סיווג של אותה מדינה.');}else if(largestCountry>60){diversification-=1;penalties.push('1−: מעל 60% במניות בעלות סיווג של אותה מדינה.');}
- const overlaps=Math.min(2,warnings.length);diversification-=overlaps;if(overlaps)penalties.push(`${overlaps}−: רישומים כפולים או מדדים זהים.`);
- const unknown=active.some(r=>!r.fund),count=active.length,simplicity=count<=4?10:count<=7?8:count<=12?6:count<=20?4:2;
- return {available:true,analysis:a,warnings,scores:[
-  {key:'cost',label:'עלות',value:costScore,summary:costScore===null?'חסרים נתוני עלות':a.estimatedAmount>0?'כולל נתונים לא מאומתים':'לפי ההוצאות השנתיות הידועות',rules:['עד 0.1%: 10; עד 0.2%: 9; עד 0.3%: 8; עד 0.5%: 6; עד 1%: 4; עד 2%: 2; מעל 2%: 1.','אין ציון כשנתוני העלות חסרים. אומדנים מסומנים במפורש.']},
-  {key:'diversification',label:'פיזור',value:unknown?null:Math.max(1,diversification),summary:'מדד מוסבר לריכוזיות',rules:[...(penalties.length?penalties:['לא הופחתו נקודות לפי הכללים האלה.']),'התחלה מ־10. נבחנים מוצרים ממוקדים, ריכוז במדינה ורישומים/מדדים כפולים. אין קנס על קרן עולמית יחידה או על היעדר אג״ח.','אין כאן מדידת סיכון, המלצה אישית, חישוב החזקות פנימיות או הבטחת תשואה.']},
-  {key:'simplicity',label:'פשטות',value:simplicity,summary:`${count} החזקות פעילות לתחזוקה`,rules:['1–4 החזקות: 10; 5–7: 8; 8–12: 6; 13–20: 4; מעל 20: 2.','הציון מתאר עומס תחזוקה בלבד, ולא איכות השקעה.']}
- ]};
+ const scoring=scorePortfolioReference(a);
+ return {available:true,analysis:a,warnings,scores:scoring.scores,scoringDetails:scoring.details,scoringSource:scoring.source};
 }
 export function comparePortfolios(left,right,catalog){
  const a=portfolioInsights(left,catalog),b=portfolioInsights(right,catalog);
@@ -75,12 +63,7 @@ export function compareFundAdvantages(selected){
  const comparable=sameExposure&&!differences.length&&!sameFund;
  return {cost,fee,history,sameFund,sameExposure,differences,comparable,preferred:comparable&&cost.status==='ranked'?cost.best:[],dataComplete:cost.status!=='missing'};
 }
-export const comparisonPriorities={
- balanced:{label:'מאוזן',weights:{cost:.4,diversification:.4,simplicity:.2}},
- cost:{label:'עלות נמוכה',weights:{cost:.7,diversification:.2,simplicity:.1}},
- diversification:{label:'פיזור במודל',weights:{cost:.2,diversification:.7,simplicity:.1}},
- simplicity:{label:'פשטות',weights:{cost:.2,diversification:.2,simplicity:.6}}
-};
+export const comparisonPriorities={balanced:{label:'לפי זינוק',weights:{cost:1/3,diversification:1/3,simplicity:1/3}}};
 export function comparePortfolioAdvantages(left,right,catalog,priority='balanced'){
  const plans=[left,right],insights=plans.map(p=>portfolioInsights(p,catalog)),projections=plans.map(p=>projectPortfolio(p,catalog)),a=insights.map(i=>i.analysis),preference=comparisonPriorities[priority]||comparisonPriorities.balanced;
  const metric=(key,lower=false)=>rankComparisonMetric(insights.map(i=>i.scores.find(s=>s.key===key)?.value??null),{lower});
@@ -90,7 +73,7 @@ export function comparePortfolioAdvantages(left,right,catalog,priority='balanced
  const provisional=a.some(x=>x.estimatedAmount>0),valid=insights.every(i=>i.available)&&Object.values(metrics).slice(0,3).every(m=>m.status!=='missing');
  if(!valid)return {status:'incomplete',winner:null,metrics,totals:[null,null],preference,provisional,projections};
  const totals=insights.map(i=>Object.entries(preference.weights).reduce((sum,[key,weight])=>sum+weight*i.scores.find(s=>s.key===key).value,0));
- const dominates=i=>{const other=1-i,feeDifference=a[other].weightedFee-a[i].weightedFee,better=[Math.abs(feeDifference)<=1e-6?0:feeDifference,metrics.diversification.values[i]-metrics.diversification.values[other],metrics.simplicity.values[i]-metrics.simplicity.values[other]];return better.every(x=>x>=-1e-7)&&better.some(x=>x>1e-7);};
- let winner=dominates(0)?0:dominates(1)?1:Math.abs(totals[0]-totals[1])>.005?(totals[0]>totals[1]?0:1):null;
- return {status:winner===null?'tie':provisional?'provisional':'ranked',winner,metrics,totals,preference,provisional,projections};
+ const deltas=['cost','diversification','simplicity'].map(key=>insights[1].scores.find(s=>s.key===key).value-insights[0].scores.find(s=>s.key===key).value),up=deltas.some(x=>x>=.5),down=deltas.some(x=>x<=-.5),mixed=up&&down;
+ const winner=mixed||!up&&!down?null:up?1:0;
+ return {status:mixed?'mixed':winner===null?'tie':provisional?'provisional':'ranked',winner,metrics,totals,preference,provisional,projections,mixed};
 }
