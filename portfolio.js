@@ -1,6 +1,6 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.22.0';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.22.0';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.22.0';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.22.1';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.22.1';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.22.1';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -230,7 +230,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  }
  function holdingFacts(id){
   const fund=funds.find(f=>f.id===id);if(!fund)return '';
-  const cost=annualFundCost(fund),facts=[['עלות שנתית',cost===null?'עלות לא ידועה':`${pct(cost)} לשנה`],['מדינה',esc(fund.domicile)],['דיבידנדים',esc(fund.distribution)],['שיטת עקיבה',esc(fund.replication?.replace(' · Swap',''))]].filter(([,value])=>value);
+  const cost=annualFundCost(fund),facts=[['עלות שנתית',cost===null?'עלות לא ידועה':pct(cost)],['מדינה',esc(fund.domicile)],['דיבידנדים',esc(fund.distribution)],['שיטת עקיבה',esc(fund.replication?.replace(' · Swap',''))]].filter(([,value])=>value);
   return `<p class="portfolio-holding-facts" aria-label="מאפייני הקרן">${facts.map(([label,value])=>`<span><span class="sr-only">${label}: </span>${value}</span>`).join('')}</p>`;
  }
  function renderBuilder(){
