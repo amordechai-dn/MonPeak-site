@@ -1,6 +1,6 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,comparisonPriorities,rankComparisonMetric} from './portfolio-insights.js?v=1.21.4';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.21.4';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.21.4';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,comparisonPriorities,rankComparisonMetric} from './portfolio-insights.js?v=1.21.5';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.21.5';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.21.5';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
