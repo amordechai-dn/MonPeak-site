@@ -5,7 +5,7 @@ export function parsePortfolioNumber(value){
 export function normalizePortfolio(raw={}){
  if(!raw||typeof raw!=='object'||Array.isArray(raw))raw={};
  const budget=parsePortfolioNumber(raw.budget??100000),seen=new Set();
- return {version:1,name:typeof raw.name==='string'?raw.name.slice(0,60):'התיק שלי',mode:raw.mode==='amount'?'amount':'percent',includeReported:raw.includeReported===true,budget:Number.isFinite(budget)&&budget>0&&budget<=1e12?budget:100000,rows:(Array.isArray(raw.rows)?raw.rows:[]).filter(r=>r&&typeof r.id==='string'&&r.id.length<=40&&!seen.has(r.id)&&seen.add(r.id)).slice(0,100).map(r=>{const value=parsePortfolioNumber(r.value);return {id:r.id,value:Number.isFinite(value)&&value<=1e12?value:0};})};
+ return {version:1,name:typeof raw.name==='string'?raw.name.slice(0,60):'התיק שלי',mode:raw.mode==='amount'?'amount':'percent',includeReported:raw.includeReported===true,budget:Number.isFinite(budget)&&budget>0&&budget<=1e12?budget:100000,rows:(Array.isArray(raw.rows)?raw.rows:[]).filter(r=>r&&typeof r.id==='string'&&r.id.length<=40&&!seen.has(r.id)&&seen.add(r.id)).slice(0,100).map(r=>{const value=parsePortfolioNumber(r.value);return {id:r.id,value:Number.isFinite(value)&&value<=1e12?value:0,...(Object.hasOwn(r,'annualReturn')?{annualReturn:Number.isFinite(parseAnnualReturn(r.annualReturn))?parseAnnualReturn(r.annualReturn):null}:{})};})};
 }
 export function analyzePortfolio(state,catalog){
  const budget=parsePortfolioNumber(state.budget),validBudget=budget>0&&budget<=1e12,lookup=new Map(catalog.map(f=>[f.id,f]));
@@ -46,7 +46,11 @@ export function filterFunds(catalog,{query='',category='all',sort='default',sele
   if(sort==='fee'){const cost=f=>Number.isFinite(f.fee)?f.fee+(Number.isFinite(f.extraFee)?f.extraFee:0):Infinity;return cost(a.fund)-cost(b.fund)||a.fund.id.localeCompare(b.fund.id);}
   if(sort==='name')return a.fund.name.localeCompare(b.fund.name);
   if(sort==='selected')return Number(ids.has(b.fund.id))-Number(ids.has(a.fund.id))||a.index-b.index;
-  return a.index-b.index;
+  const groups=['sp500','global','nasdaq','bonds','il-bonds','telaviv','emerging','value','other-us','commodities','crypto'];
+  const groupRank=f=>{const i=groups.indexOf(f.group);return i<0?groups.length:i;};
+  const priority=['VOO','IVV','SPY','1159250','1183441','VT','1159235','1209220','1185164','VXUS','1159094','QQQ','QQQM','1159243','1186063','EQQQ'];
+  const rank=f=>{const i=priority.indexOf(f.id);return i<0?priority.length:i;};
+  return groupRank(a.fund)-groupRank(b.fund)||rank(a.fund)-rank(b.fund)||a.index-b.index;
  }).map(x=>x.fund);
 }
 
@@ -61,4 +65,25 @@ export function allocatePortfolioFund(state,id,rawValue,inputMode=state.mode){
  if(money>summary.remaining+Math.max(1e-7,summary.budget*1e-12))return {ok:false,error:'over-allocation'};
  const stored=state.mode==='amount'?money:money/summary.budget*100;
  return {ok:true,state:{...state,rows:[...state.rows,{id,value:Number(stored.toPrecision(14))}]}};
+}
+
+export function parseAnnualReturn(value){
+ const raw=String(value??'').trim();
+ return /^-?\d+(?:\.\d*)?$/.test(raw)&&Number(raw)>=-100&&Number(raw)<=100?Number(raw):NaN;
+}
+export function percentagePortfolio(raw){
+ const normalized=normalizePortfolio(raw),converted=convertPortfolioMode(normalized,'percent');
+ return {...(converted||normalized),mode:'percent',budget:100};
+}
+// Planning inputs, not estimates published by a fund or historical returns.
+export const planningReturns={stocks:8,bonds:4,gold:3,commodities:0,crypto:0};
+export function holdingAnnualReturn(row,fund){
+ return Object.hasOwn(row,'annualReturn')?parseAnnualReturn(row.annualReturn):planningReturns[fund?.category]??NaN;
+}
+export function projectPortfolio(state,catalog){
+ const a=analyzePortfolio(state,catalog),rows=a.rows.map(r=>({...r,assumedReturn:holdingAnnualReturn(r,r.fund)}));
+ const active=rows.filter(r=>r.weight>0),valid=active.length>0&&active.every(r=>Number.isFinite(r.assumedReturn));
+ const contribution=valid?active.reduce((sum,r)=>sum+r.weight*r.assumedReturn/100,0):null;
+ const groups=a.groups.map(g=>{const members=active.filter(r=>r.category===g.key),weight=members.reduce((n,r)=>n+r.weight,0);return {...g,assumedReturn:weight>0&&members.every(r=>Number.isFinite(r.assumedReturn))?members.reduce((n,r)=>n+r.weight*r.assumedReturn,0)/weight:null};});
+ return {rows,groups,gross:a.complete&&valid?contribution:null,valid,complete:a.complete};
 }
