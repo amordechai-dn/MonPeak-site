@@ -69,21 +69,21 @@ export function allocatePortfolioFund(state,id,rawValue,inputMode=state.mode){
 
 export function parseAnnualReturn(value){
  const raw=String(value??'').trim();
- return /^-?\d+(?:\.\d*)?$/.test(raw)&&Number(raw)>=-100&&Number(raw)<=100?Number(raw):NaN;
+ return /^-?\d+(?:\.\d*)?$/.test(raw)&&Number(raw)>=-100&&Number(raw)<=1000?Number(raw):NaN;
 }
 export function percentagePortfolio(raw){
  const normalized=normalizePortfolio(raw),converted=convertPortfolioMode(normalized,'percent');
  return {...(converted||normalized),mode:'percent',budget:100};
 }
-// Planning inputs, not estimates published by a fund or historical returns.
-export const planningReturns={stocks:8,bonds:4,gold:3,commodities:0,crypto:0};
+// Defaults are sourced historical snapshots attached to the fund catalog.
 export function holdingAnnualReturn(row,fund){
- return Object.hasOwn(row,'annualReturn')?parseAnnualReturn(row.annualReturn):planningReturns[fund?.category]??NaN;
+ return Object.hasOwn(row,'annualReturn')?parseAnnualReturn(row.annualReturn):Number.isFinite(fund?.history?.rate)?fund.history.rate:fund?0:NaN;
 }
 export function projectPortfolio(state,catalog){
- const a=analyzePortfolio(state,catalog),rows=a.rows.map(r=>({...r,assumedReturn:holdingAnnualReturn(r,r.fund)}));
- const active=rows.filter(r=>r.weight>0),valid=active.length>0&&active.every(r=>Number.isFinite(r.assumedReturn));
- const contribution=valid?active.reduce((sum,r)=>sum+r.weight*r.assumedReturn/100,0):null;
- const groups=a.groups.map(g=>{const members=active.filter(r=>r.category===g.key),weight=members.reduce((n,r)=>n+r.weight,0);return {...g,assumedReturn:weight>0&&members.every(r=>Number.isFinite(r.assumedReturn))?members.reduce((n,r)=>n+r.weight*r.assumedReturn,0)/weight:null};});
- return {rows,groups,gross:a.complete&&valid?contribution:null,valid,complete:a.complete};
+ const a=analyzePortfolio(state,catalog),rows=a.rows.map(r=>({...r,assumedReturn:holdingAnnualReturn(r,r.fund)})),active=rows.filter(r=>r.weight>0);
+ const included=active.filter(r=>Number.isFinite(r.assumedReturn)&&r.assumedReturn!==0),includedWeight=included.reduce((n,r)=>n+r.weight,0),excludedWeight=active.filter(r=>r.assumedReturn===0).reduce((n,r)=>n+r.weight,0);
+ const valid=active.length>0&&active.every(r=>Number.isFinite(r.assumedReturn))&&includedWeight>0;
+ const contribution=valid?included.reduce((sum,r)=>sum+r.weight*r.assumedReturn,0)/includedWeight:null;
+ const groups=a.groups.map(g=>{const all=active.filter(r=>r.category===g.key),members=all.filter(r=>r.assumedReturn!==0),weight=members.reduce((n,r)=>n+r.weight,0);return {...g,assumedReturn:weight>0&&all.every(r=>Number.isFinite(r.assumedReturn))?members.reduce((n,r)=>n+r.weight*r.assumedReturn,0)/weight:null};});
+ return {rows,groups,gross:a.complete&&valid?contribution:null,valid,complete:a.complete,includedWeight,excludedWeight};
 }
