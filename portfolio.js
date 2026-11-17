@@ -1,6 +1,6 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings} from './portfolio-insights.js?v=1.18.0';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.18.0';
-import {normalizePortfolio,analyzePortfolio,convertPortfolioMode,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund} from './portfolio-model.js?v=1.18.0';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings} from './portfolio-insights.js?v=1.18.1';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.18.1';
+import {normalizePortfolio,analyzePortfolio,convertPortfolioMode,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund} from './portfolio-model.js?v=1.18.1';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
