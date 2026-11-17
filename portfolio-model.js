@@ -43,9 +43,22 @@ export function filterFunds(catalog,{query='',category='all',sort='default',sele
  let q=query.trim().toLocaleLowerCase();try{const url=new URL(q);if(url.hostname==='market.tase.co.il'){const match=url.pathname.match(/\/security\/(\d+)/);if(match)q=match[1];}}catch{}const ids=new Set(selected);
  return catalog.filter(f=>(category==='all'||f.group===category||f.category===category)&&(distribution==='all'||f.distribution===distribution)&&(domicile==='all'||f.domicile===domicile)&&(q===''||[f.id,f.name,f.label,f.issuer,f.benchmark,f.exposure,f.isin,f.exchange].some(x=>String(x??'').toLocaleLowerCase().includes(q)))).map((fund,index)=>({fund,index})).sort((a,b)=>{
   const exact=Number(b.fund.id.toLowerCase()===q)-Number(a.fund.id.toLowerCase()===q);if(exact)return exact;
-  if(sort==='fee')return (a.fund.fee??Infinity)-(b.fund.fee??Infinity)||a.fund.id.localeCompare(b.fund.id);
+  if(sort==='fee'){const cost=f=>Number.isFinite(f.fee)?f.fee+(Number.isFinite(f.extraFee)?f.extraFee:0):Infinity;return cost(a.fund)-cost(b.fund)||a.fund.id.localeCompare(b.fund.id);}
   if(sort==='name')return a.fund.name.localeCompare(b.fund.name);
   if(sort==='selected')return Number(ids.has(b.fund.id))-Number(ids.has(a.fund.id))||a.index-b.index;
   return a.index-b.index;
  }).map(x=>x.fund);
+}
+
+// Add one allocation without changing any existing holding or accepting an over-allocation.
+export function allocatePortfolioFund(state,id,rawValue,inputMode=state.mode){
+ const summary=analyzePortfolio(state,[]),value=parsePortfolioNumber(rawValue);
+ if(summary.invalid||!summary.validBudget)return {ok:false,error:'invalid-portfolio'};
+ if(state.rows.some(row=>row.id===id))return {ok:false,error:'duplicate'};
+ if(state.rows.length>=100)return {ok:false,error:'limit'};
+ if(!Number.isFinite(value)||value<0||inputMode==='percent'&&value>100)return {ok:false,error:'invalid-value'};
+ const money=inputMode==='amount'?value:summary.budget*value/100;
+ if(money>summary.remaining+Math.max(1e-7,summary.budget*1e-12))return {ok:false,error:'over-allocation'};
+ const stored=state.mode==='amount'?money:money/summary.budget*100;
+ return {ok:true,state:{...state,rows:[...state.rows,{id,value:Number(stored.toPrecision(14))}]}};
 }

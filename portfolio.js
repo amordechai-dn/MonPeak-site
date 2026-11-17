@@ -1,11 +1,12 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios} from './portfolio-insights.js?v=1.17.3';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.17.3';
-import {normalizePortfolio,analyzePortfolio,convertPortfolioMode,equalizePortfolio,filterFunds,parsePortfolioNumber} from './portfolio-model.js?v=1.17.3';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings} from './portfolio-insights.js?v=1.18.0';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.18.0';
+import {normalizePortfolio,analyzePortfolio,convertPortfolioMode,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund} from './portfolio-model.js?v=1.18.0';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
 const amount=n=>`<bdi>${number(n)} <span class="portfolio-shekel">₪</span></bdi>`;
 const pct=n=>!Number.isFinite(n)?'—':`<bdi>${number(n,4)}%</bdi>`;
+const annualFundCost=f=>Number.isFinite(f.fee)?f.fee+(Number.isFinite(f.extraFee)?f.extraFee:0):null;
 const reviewDate=value=>value?String(value).split('-').reverse().join('.'):'טרם אומת';
 const info=(key,label)=>`<button type="button" class="help-button" data-portfolio-help="${key}" aria-label="הסבר על ${label}" aria-haspopup="dialog"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.25"/><path d="M10 9v4M10 6.5h.01"/></svg></button>`;
 const help={
@@ -18,7 +19,7 @@ const help={
 
 export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},onOpenSaved=()=>{},getSaved=()=>[],notify=()=>{}}={}){
  let draft;try{draft=JSON.parse(localStorage.getItem('monpeak-portfolio-draft')||'null');}catch{}
- let state=normalizePortfolio(initial??draft??{}),tab=state.rows.length?'builder':'library',query='',category='all',sort='default',distribution='all',domicile='all',storageWarned=false,libraryTarget='current',previousState=null,comparison=null;
+ let state=normalizePortfolio(initial??draft??{}),tab=state.rows.length?'builder':'library',query='',category='all',sort='default',distribution='all',domicile='all',storageWarned=false,libraryTarget='current',previousState=null,comparison=null,libraryView='list',fundSelection=[],pendingAllocation=null;
  try{const stored=JSON.parse(localStorage.getItem('monpeak-portfolio-comparison')||'null');if(stored)comparison=normalizePortfolio(stored);}catch{}
  const persistComparison=()=>{try{localStorage.setItem('monpeak-portfolio-comparison',JSON.stringify(comparison));}catch{notify('לא ניתן לשמור את ההשוואה במכשיר.');}};
  const find=s=>root.querySelector(s),all=s=>[...root.querySelectorAll(s)];
@@ -30,7 +31,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},onOpe
   <div id="portfolioView" role="tabpanel" tabindex="-1"></div>
  </section>
  <aside id="portfolioSummary" class="portfolio-summary" aria-label="סיכום התיק" tabindex="-1"></aside>
- </div><dialog class="help-dialog portfolio-dialog" id="portfolioDialog" aria-labelledby="portfolioDialogTitle"><div class="dialog-head"><h2 id="portfolioDialogTitle"></h2><button type="button" class="quiet" data-close-portfolio-dialog>סגירה ✕</button></div><div class="help-copy" id="portfolioDialogBody"></div></dialog>`;
+ </div><div class="portfolio-mobile-bar" id="portfolioMobileBar"></div><dialog class="help-dialog portfolio-dialog" id="portfolioDialog" aria-labelledby="portfolioDialogTitle"><div class="dialog-head"><h2 id="portfolioDialogTitle"></h2><button type="button" class="quiet" data-close-portfolio-dialog>סגירה ✕</button></div><div class="help-copy" id="portfolioDialogBody"></div></dialog>`;
 
  function showDialog(title,body){
   find('#portfolioDialogTitle').textContent=title;find('#portfolioDialogBody').innerHTML=body;
@@ -38,13 +39,14 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},onOpe
   if(!motion())dialog.animate([{opacity:0,transform:'translateY(5px)'},{opacity:1,transform:'translateY(0)'}],{duration:150,easing:'ease-out'});
  }
  let closing=false;
- function closeDialog(){const dialog=find('#portfolioDialog');if(closing||!dialog.open)return;if(motion()){dialog.close();return;}closing=true;dialog.animate([{opacity:1},{opacity:0}],{duration:100}).finished.catch(()=>{}).then(()=>{dialog.close();closing=false;});}
+ function closeDialog(){const dialog=find('#portfolioDialog');if(closing||!dialog.open)return;if(motion()){dialog.close();return;}closing=true;return dialog.animate([{opacity:1},{opacity:0}],{duration:100}).finished.catch(()=>{}).then(()=>{dialog.close();closing=false;});}
  find('#portfolioDialog').addEventListener('cancel',e=>{e.preventDefault();closeDialog();});
  find('#portfolioDialog').addEventListener('click',e=>{if(e.target!==e.currentTarget)return;const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog();});
 
  function update(){persist();renderSummary();updateRows();if(tab==='compare')renderComparisonResults();}
  function setTab(next,{focus=false}={}){tab=next;if(next!=='library')libraryTarget='current';renderView();if(focus){find('#portfolioView').focus({preventScroll:true});find('.portfolio-tabs').scrollIntoView({behavior:motion()?'instant':'smooth',block:'start'});}}
  function renderView(){
+  root.classList.toggle('is-library',tab==='library');
   all('[data-portfolio-tab]').forEach(button=>{const selected=button.dataset.portfolioTab===tab;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;});
   find('#portfolioView').setAttribute('aria-labelledby',`portfolio-${tab}-tab`);
   if(tab==='library')renderLibrary();else if(tab==='examples')renderExamples();else if(tab==='compare')renderComparison();else renderBuilder();renderSummary();
@@ -53,23 +55,53 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},onOpe
   find('#portfolioView').innerHTML=`<div class="portfolio-library-head"><div><h2>${libraryTarget==='comparison'?'מוסיפים לתיק ההשוואה':'ספריית קרנות'}</h2><p>${funds.length} קרנות ומוצרים</p></div>${libraryTarget==='comparison'?'<button type="button" class="text-button" data-back-comparison>חזרה להשוואה</button>':info('catalog','נתוני הספרייה')}</div>
   <label class="portfolio-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span class="sr-only">חיפוש קרנות</span><input type="search" id="portfolioSearch" placeholder="שם, סימול או מדד…" autocomplete="off" value="${esc(query)}"></label>
   <details class="portfolio-filters"><summary>סינון ומיון <span>${esc(category==='all'?'כל הקטגוריות':fundGroups[category]||category)}</span></summary><div class="portfolio-filter-options"><div class="portfolio-chips" role="group" aria-label="קטגוריות">${[['all','הכול'],...Object.entries(fundGroups)].map(([key,label])=>`<button type="button" data-category="${key}" aria-pressed="${category===key}">${label} <small>${key==='all'?funds.length:funds.filter(f=>f.group===key).length}</small></button>`).join('')}</div><div class="portfolio-chips" role="group" aria-label="חלוקת דיבידנד">${['all','צוברת','מחלקת','ללא חלוקה'].map(value=>`<button type="button" data-distribution="${value}" aria-pressed="${distribution===value}">${value==='all'?'כל סוגי החלוקה':value}</button>`).join('')}</div><div class="portfolio-chips" role="group" aria-label="מדינת התאגדות">${['all',...new Set(funds.map(f=>f.domicile))].map(value=>`<button type="button" data-domicile="${esc(value)}" aria-pressed="${domicile===value}">${value==='all'?'כל המדינות':value}</button>`).join('')}</div><div class="portfolio-sort" role="group" aria-label="מיון קרנות"><button type="button" data-sort="fee" aria-pressed="${sort==='fee'}">דמי ניהול ↑</button><button type="button" data-sort="name" aria-pressed="${sort==='name'}">שם</button></div></div></details>
-  <div class="sr-only" id="portfolioSearchStatus" role="status"></div><div id="portfolioFundGrid" class="portfolio-fund-grid"></div>`;
+  <div class="sr-only" id="portfolioSearchStatus" role="status"></div><div class="portfolio-library-tools"><div class="portfolio-view-switch" role="group" aria-label="תצוגת הספרייה"><button type="button" data-library-view="list">רשימה</button><button type="button" data-library-view="cards">כרטיסים</button></div><div id="portfolioSelectionBar"></div><div id="portfolioLibraryBalance"></div></div><div id="portfolioFundGrid"></div>`;
   renderCards();
  }
+ function fundIdentity(f){
+  const siblings=funds.filter(x=>x.id!==f.id&&x.fundKey===f.fundKey);
+  return `<div class="portfolio-list-title"><label class="portfolio-fund-check"><input type="checkbox" data-select-fund="${f.id}" aria-label="השוואת ${f.id}" ${fundSelection.includes(f.id)?'checked':''} ${fundSelection.length>=3&&!fundSelection.includes(f.id)?'disabled':''}></label><div><strong dir="auto">${esc(f.label)}</strong><bdi class="portfolio-ticker">${f.id}</bdi><p dir="${/[א-ת]/.test(f.name)?'rtl':'ltr'}">${esc(f.name)}</p>${siblings.length?`<span class="portfolio-same-listing">אותה קרן גם ב־<bdi>${siblings.map(x=>esc(x.id)).join(' / ')}</bdi></span>`:''}</div></div>`;
+ }
  function renderCards(){
-  const selected=(libraryTarget==='comparison'?comparison?.rows||[]:state.rows).map(r=>r.id),matches=filterFunds(funds,{query,category,sort,selected,distribution,domicile});
+  const target=libraryTarget==='comparison'?comparison:state,selected=target.rows.map(r=>r.id),matches=filterFunds(funds,{query,category,sort,selected,distribution,domicile});
+  renderMobileBar(analyzePortfolio(state,funds));
   find('#portfolioSearchStatus').textContent=`${matches.length} קרנות נמצאו`;
-  find('#portfolioFundGrid').innerHTML=matches.length?matches.map(f=>{
-   const added=selected.includes(f.id);
-   const annualCost=Number.isFinite(f.fee)?f.fee+(Number.isFinite(f.extraFee)?f.extraFee:0):null;
-   return `<article class="portfolio-fund" aria-label="${esc(f.name)}"><div class="portfolio-fund-heading"><span class="portfolio-ticker" dir="ltr">${f.id}</span><h3 class="portfolio-fund-name" dir="auto" title="${esc(f.name)}">${esc(f.label)}</h3></div><p class="portfolio-card-full-name" dir="${/[א-ת]/.test(f.name)?'rtl':'ltr'}">${esc(f.name)}</p><dl class="portfolio-card-meta"><div><dt>התאגדות</dt><dd>${esc(f.domicile)}</dd></div><div><dt>מטבע מסחר</dt><dd dir="auto">${esc(f.currency)}</dd></div><div><dt>חלוקה</dt><dd>${esc(f.distribution)}</dd></div></dl><div class="portfolio-card-cost"><span>עלות שנתית</span><strong>${annualCost===null?'<span class="portfolio-unverified">לא אומתה</span>':pct(annualCost)}</strong></div><div class="portfolio-fund-actions" dir="rtl"><button type="button" class="primary portfolio-add ${added?'is-added':''}" data-add-fund="${f.id}" ${added?'disabled':''} aria-label="${added?'כבר בתיק':'הוספת'} ${f.id}"><span aria-hidden="true">${added?'✓':'＋'}</span>${added?'בתיק':'הוספה לתיק'}</button><button type="button" class="text-button" data-fund-details="${f.id}" aria-label="פרטי ${f.id}">פרטים ומקור</button></div></article>`;
-  }).join(''):`<div class="portfolio-empty-search"><h3>לא נמצאו קרנות</h3><p>נסו שם אחר או הסירו את הסינון.</p><button type="button" class="text-button" data-clear-filters>איפוס חיפוש וסינון</button></div>`;
+  find('#portfolioFundGrid').className=`portfolio-catalog ${libraryView==='cards'?'is-card-view':''}`;
+  all('[data-library-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.libraryView===libraryView)));
+  find('#portfolioSelectionBar').innerHTML=fundSelection.length?`<span>${fundSelection.length} נבחרו</span><button type="button" class="text-button" data-open-fund-comparison ${fundSelection.length<2?'disabled':''}>השוואת קרנות</button><button type="button" class="quiet" data-clear-fund-selection>ניקוי</button>`:'<span>סמנו 2–3 קרנות להשוואה</span>';
+  const balance=analyzePortfolio(target,funds);
+  find('#portfolioLibraryBalance').innerHTML=`<span>${libraryTarget==='comparison'?'חלופה':'בתיק'}: ${selected.length} קרנות</span><strong class="${balance.over?'target-missed':balance.complete?'target-met':''}">${balance.invalid?'יש לתקן הקצאות':balance.over?'חריגה '+pct(balance.weight-100):'נותרו '+pct(Math.max(0,100-balance.weight))}</strong><button type="button" class="text-button" ${libraryTarget==='comparison'?'data-back-comparison':'data-edit-current'}>${libraryTarget==='comparison'?'לחלופה':'לתיק שלי'}</button>`;
+  find('#portfolioFundGrid').innerHTML=matches.length?`<table class="portfolio-catalog-table"><caption class="sr-only">ספריית קרנות להשוואה ולהוספה לתיק</caption><thead><tr>${['קרן / נכס','עלות בשנה','התאגדות','מטבע מסחר','חלוקה','עקיבה וגידור','פעולות'].map(x=>`<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${matches.map(f=>{
+   const added=selected.includes(f.id),cost=annualFundCost(f);
+   return `<tr><td class="portfolio-identity-cell">${fundIdentity(f)}</td><td data-label="עלות בשנה" class="portfolio-cost-cell">${cost===null?'<span class="portfolio-unverified">לא אומתה</span>':pct(cost)}</td><td data-label="התאגדות">${esc(f.domicile)}</td><td data-label="מטבע מסחר"><bdi>${esc(f.currency)}</bdi></td><td data-label="חלוקה">${esc(f.distribution)}</td><td data-label="עקיבה וגידור" class="portfolio-method-cell"><span>${esc(f.replication)}</span><span>${esc(f.hedging)}</span></td><td class="portfolio-catalog-actions"><button type="button" class="primary" data-add-fund="${f.id}" ${added?'disabled':''} aria-label="${added?'כבר בתיק':'הוספת'} ${f.id}">${added?'✓ בתיק':'＋ הוספה'}</button><button type="button" class="text-button" data-fund-details="${f.id}" aria-label="פרטי ${f.id}">פרטים ומקור</button></td></tr>`;
+  }).join('')}</tbody></table>`:`<div class="portfolio-empty-search"><h3>לא נמצאו קרנות</h3><p>נסו שם אחר או הסירו את הסינון.</p><button type="button" class="text-button" data-clear-filters>איפוס חיפוש וסינון</button></div>`;
+ }
+ function openFundComparison(){
+  const selected=fundSelection.map(id=>funds.find(f=>f.id===id)).filter(Boolean);
+  if(selected.length<2)return;
+  const fields=[['שם מלא',f=>esc(f.name)],['מדד / נכס',f=>esc(f.benchmark)],['עלות שנתית כוללת',f=>annualFundCost(f)===null?'לא אומתה':pct(annualFundCost(f))],['דמי ניהול',f=>f.fee===null?'לא אומתו':pct(f.fee)],['עלות נוספת',f=>Number.isFinite(f.extraFee)?pct(f.extraFee):'לא אומתה'],['התאגדות',f=>esc(f.domicile)],['בורסה',f=>esc(f.exchange||'ארה״ב')],['מטבע מסחר',f=>esc(f.currency)],['חלוקה',f=>esc(f.distribution)],['שיטת עקיבה',f=>esc(f.replication)],['גידור',f=>esc(f.hedging)],['זהות הקרן',f=>esc(f.fundKey)],['נבדק בתאריך',f=>reviewDate(f.verifiedAt)]];
+  showDialog('השוואת קרנות',`<div class="portfolio-fund-compare-scroll" tabindex="0" aria-label="טבלת השוואת קרנות, ניתנת לגלילה"><table class="portfolio-fund-compare" style="min-width:${selected.length===2?'0':'560px'}"><thead><tr><th scope="col">נתון</th>${selected.map(f=>`<th scope="col"><bdi>${f.id}</bdi></th>`).join('')}</tr></thead><tbody>${fields.map(([label,fn])=>`<tr><th scope="row">${label}</th>${selected.map(f=>`<td><bdi>${fn(f)}</bdi></td>`).join('')}</tr>`).join('')}<tr><th scope="row">מקור</th>${selected.map(f=>`<td><a href="${esc(f.source)}" target="_blank" rel="noopener noreferrer">מקור רשמי ↗</a></td>`).join('')}</tr></tbody></table></div>`);
+ }
+ function openAllocation(id,mode,value=''){
+  const f=funds.find(f=>f.id===id),target=libraryTarget==='comparison'?comparison:state;
+  if(!f||!target)return;
+  pendingAllocation={id,mode:mode||target.mode,target:libraryTarget};
+  const summary=analyzePortfolio(target,funds),unit=pendingAllocation.mode==='percent'?'%':'₪';
+  showDialog(`הוספת ${id}`,`<p class="portfolio-allocation-name" dir="auto">${esc(f.label)}</p><form id="portfolioAllocationForm" novalidate><div class="portfolio-mode" role="group" aria-label="שיטת הקצאה בהוספה"><button type="button" data-add-mode="percent" aria-pressed="${pendingAllocation.mode==='percent'}">אחוזים</button><button type="button" data-add-mode="amount" aria-pressed="${pendingAllocation.mode==='amount'}">סכומים</button></div><label class="field" for="portfolioAddValue">הקצאה לקרן<span class="input-wrap"><input id="portfolioAddValue" type="text" inputmode="decimal" dir="ltr" autocomplete="off" value="${esc(value)}" aria-describedby="portfolioAddBalance portfolioAddError"><span class="unit">${unit}</span></span></label><p id="portfolioAddBalance" class="portfolio-add-balance">נותרו להקצאה: ${pct(Math.max(0,100-summary.weight))} · ${amount(Math.max(0,summary.remaining))}</p><p id="portfolioAddAfter" class="portfolio-add-balance" role="status"></p><p id="portfolioAddError" class="portfolio-field-error" role="alert"></p><div class="portfolio-add-actions"><button type="submit" class="primary">הוספה לתיק</button><button type="button" class="text-button" data-fill-add>הקצאת היתרה</button></div></form>`);
+  find('#portfolioAddValue').focus({preventScroll:true});
+ }
+ function validateAllocation(){
+  if(!pendingAllocation)return null;
+  const target=pendingAllocation.target==='comparison'?comparison:state,result=allocatePortfolioFund(target,pendingAllocation.id,find('#portfolioAddValue').value,pendingAllocation.mode);
+  const messages={'invalid-portfolio':'יש לתקן את סכום התיק או את ההקצאות הקיימות.','invalid-value':'הזינו הקצאה תקינה, אפס או יותר.','over-allocation':'ההקצאה גבוהה מהיתרה הפנויה.','duplicate':'הקרן כבר נמצאת בתיק.','limit':'אפשר להוסיף עד 100 החזקות.'};
+  find('#portfolioAddError').textContent=result.ok?'':messages[result.error];find('#portfolioAddValue').setAttribute('aria-invalid',String(!result.ok));
+  if(result.ok){const after=analyzePortfolio(result.state,funds);find('#portfolioAddAfter').innerHTML=`אחרי ההוספה יישארו: ${pct(Math.max(0,100-after.weight))} · ${amount(Math.max(0,after.remaining))}`;}else find('#portfolioAddAfter').textContent='';
+  return result;
  }
  function insightsHTML(data){
   if(!data.rows.length)return '';
-  const insight=portfolioInsights(data,funds);
-  if(!insight.available)return `<div class="portfolio-analysis-note">${esc(insight.reason)}</div>`;
-  return `<div class="portfolio-analysis-title"><h2>ניתוח התיק</h2><small>מדדים מוסברים · לא ציון התאמה אישי</small></div><div class="portfolio-score-grid">${insight.scores.map(score=>`<article class="portfolio-score"><h3>${score.label}</h3><strong>${score.value===null?'—':score.value}<small>${score.value===null?'':' / 10'}</small></strong><p>${esc(score.summary)}</p><details><summary>איך מחושב?</summary><ul>${score.rules.map(rule=>`<li>${esc(rule)}</li>`).join('')}</ul></details></article>`).join('')}</div>${insight.warnings.map(w=>`<p class="portfolio-overlap-note">${esc(w.text)}</p>`).join('')}`;
+  const insight=portfolioInsights(data,funds),findings=portfolioFindings(data,funds);
+  return `<div class="portfolio-analysis-title"><h2>מה כדאי לבדוק בתיק</h2></div><ul class="portfolio-findings">${findings.map(f=>`<li class="${f.kind==='error'?'target-missed':f.kind==='complete'?'target-met':''}"><span dir="auto">${esc(f.text)}</span>${f.kind==='allocation'||f.kind==='zero'?'<button type="button" class="text-button" data-focus-allocations>עריכת הקצאות</button>':f.kind==='missing-cost'?'<button type="button" class="text-button" data-show-summary>לנתוני העלות</button>':''}</li>`).join('')}</ul>${insight.available?`<details class="portfolio-score-details"><summary>ציוני עלות, פיזור ופשטות</summary><div class="portfolio-score-grid">${insight.scores.map(score=>`<article class="portfolio-score"><h3>${score.label}</h3><strong>${score.value??'—'}<small> / 10</small></strong><p>${esc(score.summary)}</p><details><summary>איך מחושב?</summary><ul>${score.rules.map(rule=>`<li>${esc(rule)}</li>`).join('')}</ul></details></article>`).join('')}</div></details>`:''}`;
  }
  function renderExamples(){
   find('#portfolioView').innerHTML=`<div class="portfolio-library-head"><div><h2>תיקים לדוגמה</h2><p>שמונה תמהילים להמחשה. ההרכב המדויק מוצג בכל תבנית.</p></div></div><div class="portfolio-template-grid">${templates.map(t=>`<article class="portfolio-template"><h3>${esc(t.name)}</h3><p>${esc(t.description)}</p><ul>${t.rows.map(([id,value])=>`<li><button type="button" data-fund-details="${id}"><bdi>${id}</bdi> ${esc(funds.find(f=>f.id===id)?.label||id)}</button><bdi>${value}%</bdi></li>`).join('')}</ul><div><button type="button" class="primary" data-load-template="${t.id}">טעינה לתיק שלי</button><button type="button" class="text-button" data-template-compare="${t.id}">השוואה לתיק שלי</button></div></article>`).join('')}</div>`;
@@ -111,11 +143,19 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},onOpe
    if(fill)fill.disabled=!summary.validBudget||summary.invalid||summary.remaining<=.000001;
   });
  }
+ function renderMobileBar(s){
+  const alternative=tab==='library'&&libraryTarget==='comparison'&&comparison;
+  if(alternative)s=analyzePortfolio(comparison,funds);
+  const invalid=!s.validBudget||s.invalid,statusClass=invalid||s.over?'target-missed':s.complete?'target-met':'',choosing=tab==='library'&&fundSelection.length>=2;
+  const navigation=`<button type="button" class="${choosing?'text-button':'primary'}" ${alternative?'data-back-comparison':'data-edit-current'}>${alternative?'לחלופה':'לתיק שלי'}</button>`;
+  find('#portfolioMobileBar').innerHTML=`<span>${alternative?comparison.rows.length:state.rows.length} ${alternative?'בחלופה':'קרנות'} <strong class="${statusClass}">${invalid?'שגיאה':pct(s.weight)}</strong></span>${choosing?`<button type="button" class="primary" data-open-fund-comparison>השוואה (${fundSelection.length})</button>`:''}${navigation}${!choosing&&!alternative?'<button type="button" class="text-button" data-show-summary>סיכום</button>':''}`;
+ }
  function renderSummary(){
   const s=analyzePortfolio(state,funds);find('#portfolioCount').textContent=state.rows.length;
   const hasMoney=s.allocated>0,invalid=!s.validBudget||s.invalid,status=invalid?'יש ערך שצריך לתקן':s.over?'ההקצאה גבוהה מסכום התיק':s.complete?'התיק מוקצה במלואו':hasMoney?'נותר סכום להקצאה':'ממתין להקצאה';
   const statusClass=invalid||s.over?'target-missed':s.complete?'target-met':'';
   const ring=s.groups.length?`<svg class="portfolio-donut" viewBox="0 0 120 120" role="img" aria-label="חלוקה מתוך הסכום שהוקצה"><circle cx="60" cy="60" r="44" fill="none" stroke="#e6e8dd" stroke-width="13"/>${s.groups.map((g,i)=>{const offset=s.groups.slice(0,i).reduce((n,x)=>n+x.share,0);return `<circle cx="60" cy="60" r="44" pathLength="100" fill="none" stroke="${(categories[g.key]||categories.unknown).color}" stroke-width="13" stroke-dasharray="${g.share} ${100-g.share}" stroke-dashoffset="${-offset}" transform="rotate(-90 60 60)"/>`;}).join('')}<text x="60" y="58" text-anchor="middle">${state.rows.filter(r=>parsePortfolioNumber(r.value)>0).length}</text><text class="portfolio-donut-label" x="60" y="75" text-anchor="middle">החזקות</text></svg>`:'';
+  renderMobileBar(s);
   find('#portfolioSummary').innerHTML=`<div class="portfolio-summary-heading"><h2>סיכום התיק</h2>${info('allocation','חלוקת התיק')}</div>
    <div class="portfolio-allocation-status ${statusClass}"><span>${s.complete?'✓':s.over||invalid?'✕':'○'} ${status}</span><strong>${invalid?'—':pct(s.weight)}</strong></div>
    <div class="portfolio-allocation-track" aria-hidden="true"><span style="width:${invalid?0:Math.min(100,s.weight)}%"></span></div>
@@ -137,6 +177,8 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},onOpe
  }
  root.addEventListener('input',event=>{
   const input=event.target;
+  if(input.dataset.selectFund){const id=input.dataset.selectFund;if(input.checked){if(!fundSelection.includes(id)&&fundSelection.length<3)fundSelection.push(id);}else fundSelection=fundSelection.filter(x=>x!==id);renderCards();all('[data-select-fund]').find(x=>x.dataset.selectFund===id)?.focus({preventScroll:true});return;}
+  if(input.id==='portfolioAddValue'){validateAllocation();return;}
   if(input.hasAttribute('data-include-reported')){state.includeReported=input.checked;update();find('[data-include-reported]')?.focus({preventScroll:true});return;}
   if(input.hasAttribute('data-compare-name')){comparison.name=input.value;persistComparison();renderComparisonResults();return;}
   if(input.hasAttribute('data-compare-budget')){comparison.budget=input.value;persistComparison();renderComparisonResults();return;}
@@ -148,7 +190,13 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},onOpe
   if(input.dataset.rowValue!==undefined){const row=state.rows.find(r=>r.id===input.dataset.rowValue);if(row){row.value=input.value;update();}return;}
   if(input.dataset.rowSlider!==undefined){const row=state.rows.find(r=>r.id===input.dataset.rowSlider);if(!row)return;row.value=Number(input.value);const field=all('[data-row-value]').find(x=>x.dataset.rowValue===row.id);if(field)field.value=state.mode==='amount'?number(row.value):row.value;update();}
  });
- root.addEventListener('focusout',event=>{
+ root.addEventListener('submit',event=>{
+  if(event.target.id!=='portfolioAllocationForm')return;event.preventDefault();const result=validateAllocation();if(!result?.ok){find('#portfolioAddValue').focus();return;}
+  const pending=pendingAllocation;pendingAllocation=null;
+  if(pending.target==='comparison'){comparison=result.state;persistComparison();}else{state=result.state;update();}
+  const closed=closeDialog();renderCards();Promise.resolve(closed).then(()=>find(`[data-fund-details="${pending.id}"]`)?.focus({preventScroll:true}));notify(`${pending.id} נוספה לתיק עם ההקצאה שבחרת.`);
+ });
+ root.addEventListener('focusout' ,event=>{
   const input=event.target;if(input.id==='portfolioBudget'||input.hasAttribute('data-compare-budget')||input.dataset.rowValue!==undefined&&state.mode==='amount'){const n=parsePortfolioNumber(input.value);if(Number.isFinite(n))input.value=number(n,8);}
  });
  root.addEventListener('keydown',event=>{
@@ -172,7 +220,13 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},onOpe
   if(button.dataset.domicile){domicile=button.dataset.domicile;all('[data-domicile]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.domicile===domicile)));renderCards();return;}
   if(button.dataset.portfolioTab){setTab(button.dataset.portfolioTab,{focus:true});return;}
   if(button.hasAttribute('data-open-library')){setTab('library',{focus:true});return;}
-  if(button.dataset.addFund){const target=libraryTarget==='comparison'?comparison:state;if(!target.rows.some(r=>r.id===button.dataset.addFund)){target.rows.push({id:button.dataset.addFund,value:0});if(libraryTarget==='comparison')persistComparison();else update();renderCards();find(`[data-fund-details="${button.dataset.addFund}"]`)?.focus({preventScroll:true});notify(`${button.dataset.addFund} נוספה לתיק. ההקצאה נשארה לבחירתך.`);}return;}
+  if(button.dataset.addFund){openAllocation(button.dataset.addFund);return;}
+  if(button.dataset.libraryView){libraryView=button.dataset.libraryView;renderCards();return;}
+  if(button.hasAttribute('data-open-fund-comparison')){openFundComparison();return;}
+  if(button.hasAttribute('data-clear-fund-selection')){fundSelection=[];renderCards();return;}
+  if(button.dataset.addMode&&pendingAllocation){const old=parsePortfolioNumber(find('#portfolioAddValue').value),budget=parsePortfolioNumber((pendingAllocation.target==='comparison'?comparison:state).budget),value=Number.isFinite(old)?number(pendingAllocation.mode===button.dataset.addMode?old:button.dataset.addMode==='amount'?old*budget/100:old/budget*100,8):'';openAllocation(pendingAllocation.id,button.dataset.addMode,value);return;}
+  if(button.hasAttribute('data-fill-add')&&pendingAllocation){const target=pendingAllocation.target==='comparison'?comparison:state,summary=analyzePortfolio(target,funds);find('#portfolioAddValue').value=number(Math.max(0,pendingAllocation.mode==='amount'?summary.remaining:100-summary.weight),8);validateAllocation();return;}
+  if(button.hasAttribute('data-focus-allocations')){find('[data-row-value]')?.focus();return;}
   if(button.dataset.removeFund){const index=state.rows.findIndex(r=>r.id===button.dataset.removeFund);state.rows=state.rows.filter(r=>r.id!==button.dataset.removeFund);update();renderBuilder();const next=all('[data-remove-fund]')[Math.min(index,state.rows.length-1)];(next||find('[data-open-library]'))?.focus({preventScroll:true});return;}
   if(button.dataset.fillFund){const s=analyzePortfolio(state,funds),row=state.rows.find(r=>r.id===button.dataset.fillFund);if(!row||s.remaining<=0)return;row.value=Number((parsePortfolioNumber(row.value)+(state.mode==='amount'?s.remaining:100-s.weight)).toPrecision(14));update();renderBuilder();return;}
   if(button.hasAttribute('data-equalize')){const s=analyzePortfolio(state,funds);if(!s.validBudget){notify('הזינו סכום תיק תקין לפני חלוקה שווה.');return;}state=equalizePortfolio(state);update();renderBuilder();return;}

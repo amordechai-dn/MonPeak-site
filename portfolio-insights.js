@@ -1,4 +1,4 @@
-import {analyzePortfolio,normalizePortfolio} from './portfolio-model.js?v=1.17.3';
+import {analyzePortfolio,normalizePortfolio} from './portfolio-model.js?v=1.18.0';
 export const templates=[
  {id:'world-value',name:'עולמי, ערך וקריפטו · 65/30/5',description:'מדד שווקים מפותחים, קרן אקטיבית למניות קטנות עם הטיית ערך, וביטקוין.',rows:[['1185164',65],['AVGS',30],['IBIT',5]]},
  {id:'broad',name:'פיזור רחב',description:'ארה״ב, אירופה, שווקים מתעוררים, ישראל, אג״ח קצרות וביטקוין.',rows:[['1183441',40],['1159094',20],['1183490',10],['1146356',5],['1144591',20],['IBIT',5]]},
@@ -40,4 +40,19 @@ export function comparePortfolios(left,right,catalog){
  const ids=[...new Set([...a.analysis.rows,...b.analysis.rows].map(r=>r.id))];
  const rows=ids.map(id=>{const x=a.analysis.rows.find(r=>r.id===id),y=b.analysis.rows.find(r=>r.id===id);return {id,fund:x?.fund||y?.fund,leftWeight:x?.weight||0,rightWeight:y?.weight||0,delta:(y?.weight||0)-(x?.weight||0)};}).sort((x,y)=>Math.abs(y.delta)-Math.abs(x.delta));
  return {available:true,left:a,right:b,rows,feeDelta:a.analysis.weightedFee!==null&&b.analysis.weightedFee!==null?b.analysis.weightedFee-a.analysis.weightedFee:null,costDelta:a.analysis.annualCost!==null&&b.analysis.annualCost!==null?b.analysis.annualCost-a.analysis.annualCost:null,sameBudget:Math.abs(a.analysis.budget-b.analysis.budget)<.005};
+}
+
+export function portfolioFindings(state,catalog){
+ const a=analyzePortfolio(state,catalog),items=[];
+ if(a.invalid||!a.validBudget)return [{kind:'error',text:'יש לתקן את הערכים המסומנים לפני ניתוח התיק.'}];
+ if(a.over)items.push({kind:'error',text:`ההקצאה חורגת ב־${new Intl.NumberFormat('he-IL',{maximumFractionDigits:2}).format(a.weight-100)}% מסכום התיק.`});
+ else if(!a.complete)items.push({kind:'allocation',text:`נותרו ${new Intl.NumberFormat('he-IL',{maximumFractionDigits:2}).format(Math.max(0,100-a.weight))}% להקצאה.`});
+ else items.push({kind:'complete',text:'התיק מוקצה במלואו — 100%.'});
+ const active=a.rows.filter(r=>r.amount>0),keys=new Map(),benchmarks=new Map();
+ for(const r of active){const f=r.fund;if(!f)continue;const key=f.fundKey||f.id;keys.set(key,[...(keys.get(key)||[]),r]);if(f.benchmark)benchmarks.set(f.benchmark,[...(benchmarks.get(f.benchmark)||[]),r]);}
+ for(const rows of keys.values())if(rows.length>1)items.push({kind:'same-fund',text:`${rows.map(r=>r.id).join(' / ')} הם רישומים של אותה קרן, ולא פיזור נוסף.`});
+ for(const [benchmark,rows] of benchmarks)if(new Set(rows.map(r=>r.fund.fundKey||r.id)).size>1)items.push({kind:'same-index',text:`${rows.map(r=>r.id).join(' / ')} עוקבים אחר אותו מדד: ${benchmark}.`});
+ if(active.length&&!a.allFeesKnown)items.push({kind:'missing-cost',text:'חסרים נתוני עלות בחלק מההחזקות. העלות הכוללת עדיין אינה ידועה.'});
+ if(a.rows.some(r=>r.amount===0))items.push({kind:'zero',text:'יש קרנות ללא הקצאה. הגדירו להן משקל או הסירו אותן.'});
+ return items;
 }
