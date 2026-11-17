@@ -20,7 +20,27 @@ function distribution(rows,key){
 }
 function penalty(list,weights,key,reason){const delta=weights[key];if(Number.isFinite(delta)&&delta!==0)list.push({key,delta,reason});}
 const clamp=(start,floor,penalties)=>Math.max(floor,Math.min(10,start+penalties.reduce((sum,p)=>sum+p.delta,0)));
-const penaltyRules=(list)=>list.length?list.map(p=>`${p.delta}: ${p.reason}`):['אין הפחתות לפי כללי המקור.'];
+const displayNumber=n=>new Intl.NumberFormat('en-US',{maximumFractionDigits:4}).format(n);
+function plainReason(p){
+ const labels={less_than_two_exposure_buckets:'יש בתיק סוג השקעה אחד בלבד.',exactly_two_exposure_buckets:'יש בתיק שני סוגי השקעה בלבד.',all_high_risk:'כל הקרנות בתיק מסווגות בסיכון גבוה.',complex_wrappers_capped:'קריפטו, מינוף או קרנות ממוקדות: ההפחתה המצטברת מוגבלת ל־4 נקודות.',exchanges_2:'ההשקעות נסחרות בשני שווקים שונים.',exchanges_3_or_more:'ההשקעות נסחרות בשלושה שווקים או יותר.',any_mutual_fund:'התיק כולל קרן נאמנות לפי סיווג זינוק.'};
+ if(labels[p.key])return labels[p.key];
+ if(p.key.startsWith('instruments_'))return p.reason.replace('ניירות','השקעות')+'.';
+ if(p.key==='complex_crypto')return `${p.reason.split(':')[0]}: השקעה בקריפטו.`;
+ if(p.key==='complex_sector')return `${p.reason.split(':')[0]}: קרן שמתמקדת בענף מסוים.`;
+ if(p.key==='complex_thematic')return `${p.reason.split(':')[0]}: קרן שמתמקדת בנושא מסוים.`;
+ if(p.key==='complex_leveraged')return `${p.reason.split(':')[0]}: השקעה ממונפת.`;
+ return p.reason.replace('בסוג חשיפה אחד','בסוג השקעה אחד').replace('סיווגי חשיפה לתחזוקה','סוגי השקעה שונים בתיק').replace('פער הקצאות','הפרש בין משקל הקרן הגדולה לקטנה').replace('קרן מרוכזת לפי סיווג המקור','קרן ממוקדת לפי סיווג זינוק');
+}
+function penaltyRules(start,floor,list){
+ const raw=start+list.reduce((sum,p)=>sum+p.delta,0),final=clamp(start,floor,list);
+ return [`מתחילים ב־${start} נקודות.`,...(list.length?list.map(p=>`פחות ${displayNumber(-p.delta)} נק׳ — ${plainReason(p)}`):['לא ירדו נקודות בתיק הזה.']),raw<floor?`סך ההפחתות מוריד את הציון מתחת ל־${floor}, ולכן הציון נעצר ב־${floor} מתוך 10.`:`נשארו ${displayNumber(final)} מתוך 10.`];
+}
+function costRules(fee,tiers,cost){
+ if(fee===null)return ['חסרים נתוני עלות, ולכן אין ציון.'];
+ const tier=tiers.findIndex(t=>fee/100<=t.max+1e-12),lower=tier>0?tiers[tier-1].max*100:0;
+ const range=tier===0?`עד ${displayNumber(tiers[0].max*100)}%`:tier<0?`מעל ${displayNumber(tiers.at(-1).max*100)}%`:`מעל ${displayNumber(lower)}% ועד ${displayNumber(tiers[tier].max*100)}%`;
+ return [`מחברים את העלות של כל קרן לפי המשקל שלה בתיק.`, `העלות השנתית של התיק שלך: ${displayNumber(fee)}%.`, `עלות ${range} מקבלת ציון ${cost} מתוך 10.`];
+}
 export function scorePortfolioReference(analysis){
  const rows=analysis.rows.map(row=>({...row,profile:profile(row)})),known=rows.every(r=>r.profile),config=referenceScoringConfig;
  const fee=analysis.weightedFee,tiers=config.cost_thresholds.tiers;
@@ -57,8 +77,8 @@ export function scorePortfolioReference(analysis){
   if(rows.filter(r=>r.profile.isSingleStock).length>5)penalty(s,sw,'single_stocks_over_5','מעל חמש מניות בודדות');
  }
  return {source:referenceScoringSource,details:{diversificationPenalties:d,simplicityPenalties:s,exposures,groups,broadRegions,geographicallyDiverse},scores:[
-  {key:'cost',label:'עלות',value:cost,summary:cost===null?'חסרים נתוני עלות':'מדרגות העלות של זינוק',rules:['עד 0.05%: 10; עד 0.1%: 9; עד 0.2%: 8; עד 0.35%: 7; עד 0.5%: 5; עד 0.75%: 3; עד 1%: 2; מעבר לכך: 1.','העלות המשוקללת מבוססת על נתוני MonPeak, כולל עלויות נוספות ידועות. פער בנתוני העלות מול זינוק עשוי לשנות את הציון.']},
-  {key:'diversification',label:'פיזור',value:known?clamp(dw.start,dw.floor,d):null,summary:'לפי חשיפות וסיווגי זינוק',rules:known?[...notes,...penaltyRules(d),'התחלה ב־10 ורצפה 1. נבדקים ריכוז בנייר, ריכוז בסוג חשיפה, מספר סוגי חשיפה וסיכון גבוה.','פיזור גאוגרפי של מניות רחבות בין שני אזורים לפחות, כשהגדול עד 80%, מרכך את ההפחתות. הסיווגים לציון הם אלה של המקור.']:['לא ניתן לחשב ללא סיווגי כל הקרנות.']},
-  {key:'simplicity',label:'פשטות',value:known?clamp(sw.start,sw.floor,s):null,summary:'כללי התחזוקה של זינוק',rules:known?[...notes,...penaltyRules(s),'התחלה ב־10 ורצפה 1. מספר ניירות: עד 4 ללא הפחתה; 5–6: 2−; 7–10: 4−; 11–15: 6−; מעל 15: 7−.','מינוף: 3−; קריפטו ותמה: 2−; סקטור: 1−. סך הפחתות המכשירים המורכבים מוגבל ל־4−.','נוספות הפחתות על מגוון סיווגים, פערי הקצאה כשיש לפחות ארבע החזקות, ריבוי שוקי מסחר וקרנות נאמנות.']:['לא ניתן לחשב ללא סיווגי כל הקרנות.']}
+  {key:'cost',label:'עלות',value:cost,summary:'ככל שזול יותר להחזיק את התיק, הציון גבוה יותר.',rules:costRules(fee,tiers,cost)},
+  {key:'diversification',label:'פיזור',value:known?clamp(dw.start,dw.floor,d):null,summary:'בודק כמה הכסף מרוכז באותו סוג השקעה.',rules:known?[...penaltyRules(dw.start,dw.floor,d),...(d.some(p=>p.key.includes('exposure_buckets')||p.key.startsWith('asset_type_'))?['כמה קרנות מנייתיות רחבות עדיין נחשבות לסוג השקעה אחד בשיטת זינוק.']:[]),...notes]:['חסר סיווג לקרן בתיק, ולכן אין ציון.']},
+  {key:'simplicity',label:'פשטות',value:known?clamp(sw.start,sw.floor,s):null,summary:'בודק כמה קל לעקוב אחרי התיק ולאזן אותו.',rules:known?[...penaltyRules(sw.start,sw.floor,s),...notes]:['חסר סיווג לקרן בתיק, ולכן אין ציון.']}
  ]};
 }
