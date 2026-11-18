@@ -510,14 +510,27 @@ header .header-actions #savedToggle #saveCount{display:block;width:auto;min-widt
 .is-fund-allocation .portfolio-add-actions button{min-width:0;font-size:15px;padding:10px 8px}
 @media(max-width:540px){.is-fund-allocation #portfolioDialogTitle{font-size:18px}#portfolioRoot .is-fund-allocation .dialog-head>[data-close-portfolio-dialog]{width:44px;height:44px}}
 
-.portfolio-holding-risk{display:flex;align-items:center;flex-wrap:wrap;gap:5px 10px;margin:0 0 14px;font-size:14px;line-height:1.6;color:#73766d}
-.portfolio-holding-risk>span{display:inline-flex;align-items:center;gap:3px}
-.portfolio-holding-risk>strong{font-size:16px;color:#20251f;font-weight:600;font-variant-numeric:tabular-nums}
-.portfolio-holding-risk>small{font-size:13px;line-height:1.6}
-@media(max-width:540px){.portfolio-holding-risk>small{flex-basis:100%}}
 
 /* MMP wordmark keeps the established mountain symbol and restrained palette. */
 .brand>span{letter-spacing:.035em}
 .footer-brand-block{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
 .footer-tagline{font-size:14px;line-height:1.5;letter-spacing:.02em;color:#bcc5b2;white-space:nowrap}
 @media(max-width:360px){.footer-tagline{font-size:13px;letter-spacing:0}.footer-inner{column-gap:10px}}
+
+/* Editable return and historical volatility share a row; details live behind info. */
+.portfolio-holding .portfolio-holding-values{position:relative;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
+.portfolio-holding .portfolio-holding-values .input-wrap{height:46px}
+.portfolio-holding-values .portfolio-value-heading{display:flex;align-items:center;gap:4px;min-height:48px;font-size:14px;line-height:1.5}
+.portfolio-value-heading>label,.portfolio-value-heading>span{flex:1;min-width:0}
+.portfolio-value-heading .help-button{flex-shrink:0}
+.portfolio-holding-values .portfolio-volatility-field{margin:0;display:grid;gap:5px}
+.portfolio-volatility-output{display:flex;align-items:center;justify-content:flex-end;box-sizing:border-box;width:100%;height:46px;padding:7px 12px 7px 32px;border:1px solid #d9dccf;border-radius:9px;background:#f1f0e7;color:#20251f;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.5}
+.portfolio-holding .portfolio-fill{position:absolute;inset-inline-end:0;bottom:0;min-height:32px}
+@media(max-width:540px){
+ .portfolio-holding .portfolio-holding-values{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .portfolio-holding-values>.portfolio-weight-field{grid-column:1/-1}
+ .portfolio-weight-field>.portfolio-value-heading{min-height:28px}
+}
+.portfolio-holding-values .field{grid-template-columns:minmax(0,1fr)}
+.portfolio-holding-values .input-wrap{min-width:0}
+.portfolio-holding-values .value-slider{min-width:0;max-width:100%}
