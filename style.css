@@ -485,3 +485,5 @@ header .header-actions #savedToggle #saveCount{display:block;width:auto;min-widt
 .results,#portfolioSummary,#portfolioComparisonResults{overflow-anchor:none}
 
 .portfolio-summary-kpis .portfolio-group-returns>div>span{min-inline-size:3.5em}
+
+.portfolio-catalog .portfolio-official-cell>span{font-weight:700}
