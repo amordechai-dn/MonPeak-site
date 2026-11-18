@@ -474,3 +474,12 @@ header .header-actions #savedToggle #saveCount{display:block;width:auto;min-widt
 .portfolio-risk-method summary{cursor:pointer;color:#856b34;min-height:36px}
 .portfolio-risk-method summary:hover{color:#5f491c;text-shadow:0 0 8px #b49b6030}
 @media(max-width:1100px){.portfolio-summary-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#portfolioRoot .portfolio-summary-kpis>.portfolio-group-returns{grid-column:1/-1}}
+
+/* Keep the range track in place when reset/fill actions change availability. */
+.portfolio-holding .portfolio-fill:disabled{display:block;visibility:hidden;pointer-events:none}
+.portfolio-return-reset[hidden]{display:block;visibility:hidden;pointer-events:none}
+.portfolio-return-actions{flex-wrap:nowrap;min-height:32px}
+.portfolio-return-actions .portfolio-return-source{flex:1;min-width:0}
+.portfolio-return-reset{flex-shrink:0}
+/* Regenerated analysis must not become the browser's scroll anchor. */
+.results,#portfolioSummary,#portfolioComparisonResults{overflow-anchor:none}

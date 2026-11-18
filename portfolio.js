@@ -1,8 +1,9 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.24.0';
-import {ratingMethod} from './portfolio-rating.js?v=1.24.0';
-import {portfolioVolatility,portfolioVolatilityGroup} from './portfolio-risk.js?v=1.24.0';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.24.0';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.24.0';
+import {bindInputUpdates} from './input-updates.js?v=1.24.1';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.24.1';
+import {ratingMethod} from './portfolio-rating.js?v=1.24.1';
+import {portfolioVolatility,portfolioVolatilityGroup} from './portfolio-risk.js?v=1.24.1';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.24.1';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.24.1';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -56,8 +57,24 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  find('#portfolioDialog').addEventListener('cancel',e=>{e.preventDefault();closeDialog();});
  find('#portfolioDialog').addEventListener('click',e=>{if(e.target!==e.currentTarget)return;const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog();});
 
- function update(){persist();renderSummary();updateRows();if(tab==='compare')renderComparisonResults();}
- function setTab(next,{focus=false}={}){if(next==='library'&&tab!=='library')libraryOrigin=tab==='compare'?'compare':'builder';tab=next;if(next!=='library')libraryTarget='current';renderView();if(focus){find('#portfolioView').focus({preventScroll:true});find('.portfolio-tabs').scrollIntoView({behavior:motion()?'instant':'smooth',block:'start'});}}
+ function update(){persist();updateRows();if(tab==='compare'){renderMobileBar(analyzePortfolio(state,funds));renderComparisonResults();}else renderSummary();}
+ let currentDirty=false,comparisonDirty=false;
+ const inputUpdates=bindInputUpdates(root,()=>{
+  if(currentDirty)persist();if(comparisonDirty)persistComparison();
+  currentDirty=comparisonDirty=false;
+  updateRows();
+  if(tab==='compare'){renderMobileBar(analyzePortfolio(state,funds));renderComparisonResults();}else renderSummary();
+ });
+ function queueEdit(alternative=false){
+  if(alternative)comparisonDirty=true;else currentDirty=true;
+  inputUpdates.schedule();
+ }
+ function previewRange(input){
+  const min=Number(input.min),max=Number(input.max);
+  input.style.setProperty('--fill',`${(Number(input.value)-min)/(max-min)*100}%`);
+ }
+
+ function setTab(next,{focus=false}={}){inputUpdates.flush();if(next==='library'&&tab!=='library')libraryOrigin=tab==='compare'?'compare':'builder';tab=next;if(next!=='library')libraryTarget='current';renderView();if(focus){find('#portfolioView').focus({preventScroll:true});find('.portfolio-tabs').scrollIntoView({behavior:motion()?'instant':'smooth',block:'start'});}}
  function renderView(){
   root.dataset.portfolioView=tab;root.classList.toggle('is-library',tab==='library');
   all('[data-portfolio-tab]').forEach(button=>{const selected=button.dataset.portfolioTab===tab;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;});
@@ -372,19 +389,19 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  root.addEventListener('input',event=>{
   const input=event.target;
   if(input.dataset.selectFund){const id=input.dataset.selectFund;if(input.checked){if(!fundSelection.includes(id)&&fundSelection.length<3)fundSelection.push(id);}else fundSelection=fundSelection.filter(x=>x!==id);renderCards();all('[data-select-fund]').find(x=>x.dataset.selectFund===id)?.focus({preventScroll:true});return;}
-  if(input.dataset.returnSlider||input.dataset.compareReturnSlider){const alt=!!input.dataset.compareReturnSlider,id=input.dataset.returnSlider||input.dataset.compareReturnSlider,target=alt?comparison:state,row=target.rows.find(r=>r.id===id);if(row)row.annualReturn=Number(input.value);const field=all(alt?'[data-compare-return]':'[data-row-return]').find(e=>(alt?e.dataset.compareReturn:e.dataset.rowReturn)===id);if(field)field.value=input.value;if(alt){persistComparison();renderComparisonResults();}else update();return;}
-  if(input.dataset.compareWeightSlider){const row=comparison.rows.find(r=>r.id===input.dataset.compareWeightSlider);if(row)row.value=Number(input.value);const field=all('[data-compare-row]').find(e=>e.dataset.compareRow===input.dataset.compareWeightSlider);if(field)field.value=input.value;persistComparison();renderComparisonResults();return;}
-  if(input.dataset.rowReturn){const row=state.rows.find(r=>r.id===input.dataset.rowReturn);if(row)row.annualReturn=input.value;update();return;}
-  if(input.dataset.compareReturn){const row=comparison.rows.find(r=>r.id===input.dataset.compareReturn);if(row)row.annualReturn=input.value;persistComparison();renderComparisonResults();return;}
+  if(input.dataset.returnSlider||input.dataset.compareReturnSlider){const alt=!!input.dataset.compareReturnSlider,id=input.dataset.returnSlider||input.dataset.compareReturnSlider,target=alt?comparison:state,row=target.rows.find(r=>r.id===id);if(row)row.annualReturn=Number(input.value);const field=all(alt?'[data-compare-return]':'[data-row-return]').find(e=>(alt?e.dataset.compareReturn:e.dataset.rowReturn)===id);if(field)field.value=input.value;previewRange(input);queueEdit(alt);return;}
+  if(input.dataset.compareWeightSlider){const row=comparison.rows.find(r=>r.id===input.dataset.compareWeightSlider);if(row)row.value=Number(input.value);const field=all('[data-compare-row]').find(e=>e.dataset.compareRow===input.dataset.compareWeightSlider);if(field)field.value=input.value;previewRange(input);queueEdit(true);return;}
+  if(input.dataset.rowReturn){const row=state.rows.find(r=>r.id===input.dataset.rowReturn);if(row)row.annualReturn=input.value;queueEdit();return;}
+  if(input.dataset.compareReturn){const row=comparison.rows.find(r=>r.id===input.dataset.compareReturn);if(row)row.annualReturn=input.value;queueEdit(true);return;}
   if(input.id==='portfolioAddValue'){validateAllocation();return;}
-  if(input.hasAttribute('data-include-reported')){state.includeReported=input.checked;update();find('[data-include-reported]')?.focus({preventScroll:true});return;}
-  if(input.hasAttribute('data-compare-name')){comparison.name=input.value;persistComparison();renderComparisonResults();return;}
-  if(input.hasAttribute('data-compare-estimates')){comparison.includeReported=input.checked;persistComparison();renderComparisonResults();return;}
-  if(input.dataset.compareRow){const row=comparison.rows.find(r=>r.id===input.dataset.compareRow);if(row)row.value=input.value;persistComparison();renderComparisonResults();return;}
+  if(input.hasAttribute('data-include-reported')){state.includeReported=input.checked;queueEdit();find('[data-include-reported]')?.focus({preventScroll:true});return;}
+  if(input.hasAttribute('data-compare-name')){comparison.name=input.value;queueEdit(true);return;}
+  if(input.hasAttribute('data-compare-estimates')){comparison.includeReported=input.checked;queueEdit(true);return;}
+  if(input.dataset.compareRow){const row=comparison.rows.find(r=>r.id===input.dataset.compareRow);if(row)row.value=input.value;queueEdit(true);return;}
   if(input.id==='portfolioSearch'){query=input.value;renderCards();return;}
-  if(input.id==='portfolioName'){state.name=input.value;persist();if(tab==='compare')renderComparisonResults();return;}
-  if(input.dataset.rowValue!==undefined){const row=state.rows.find(r=>r.id===input.dataset.rowValue);if(row){row.value=input.value;update();}return;}
-  if(input.dataset.rowSlider!==undefined){const row=state.rows.find(r=>r.id===input.dataset.rowSlider);if(!row)return;row.value=Number(input.value);const field=all('[data-row-value]').find(x=>x.dataset.rowValue===row.id);if(field)field.value=state.mode==='amount'?number(row.value):row.value;update();}
+  if(input.id==='portfolioName'){state.name=input.value;queueEdit();return;}
+  if(input.dataset.rowValue!==undefined){const row=state.rows.find(r=>r.id===input.dataset.rowValue);if(row){row.value=input.value;queueEdit();}return;}
+  if(input.dataset.rowSlider!==undefined){const row=state.rows.find(r=>r.id===input.dataset.rowSlider);if(!row)return;row.value=Number(input.value);const field=all('[data-row-value]').find(x=>x.dataset.rowValue===row.id);if(field)field.value=state.mode==='amount'?number(row.value):row.value;previewRange(input);queueEdit();}
  });
  root.addEventListener('submit',event=>{
   if(event.target.id!=='portfolioAllocationForm')return;event.preventDefault();const result=validateAllocation();if(!result?.ok){find('#portfolioAddValue').focus();return;}
@@ -446,5 +463,5 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   if(button.hasAttribute('data-show-summary')){if(tab!=='builder')setTab('builder');find('#portfolioSummary').focus({preventScroll:true});find('#portfolioSummary').scrollIntoView({behavior:motion()?'instant':'smooth',block:'start'});}
  });
  persist();renderView();
- return {compareWith:data=>{comparison=percentagePortfolio(data);persistComparison();setTab('compare',{focus:true});}};
+ return {destroy:()=>inputUpdates.destroy(),compareWith:data=>{comparison=percentagePortfolio(data);persistComparison();setTab('compare',{focus:true});}};
 }
