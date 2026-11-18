@@ -1,5 +1,5 @@
-import {analyzePortfolio} from './portfolio-model.js?v=1.24.5';
-import {riskSnapshot} from './portfolio-risk-data.js?v=1.24.5';
+import {analyzePortfolio} from './portfolio-model.js?v=1.24.6';
+import {riskSnapshot} from './portfolio-risk-data.js?v=1.24.6';
 
 const monthNumber=month=>/^\d{4}-(0[1-9]|1[0-2])$/.test(month)?Number(month.slice(0,4))*12+Number(month.slice(5))-1:NaN;
 const previousMonth=month=>{const n=monthNumber(month)-1;return `${Math.floor(n/12)}-${String(n%12+1).padStart(2,'0')}`;};

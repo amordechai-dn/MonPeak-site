@@ -487,3 +487,10 @@ header .header-actions #savedToggle #saveCount{display:block;width:auto;min-widt
 .portfolio-summary-kpis .portfolio-group-returns>div>span{min-inline-size:3.5em}
 
 .portfolio-catalog .portfolio-official-cell>span{font-weight:700}
+
+/* Give the short replication label less room in the desktop list. */
+@media(min-width:801px){
+ #portfolioFundGrid:not(.is-card-view) .portfolio-catalog-table th:nth-child(2){width:33%}
+ #portfolioFundGrid:not(.is-card-view) .portfolio-catalog-table th:nth-child(7){width:8%;text-align:center}
+ #portfolioFundGrid:not(.is-card-view) .portfolio-method-cell{text-align:center}
+}
