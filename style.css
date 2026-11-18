@@ -435,3 +435,28 @@ header .header-actions #savedToggle #saveCount{display:block;width:auto;min-widt
 #portfolioFundGrid:not(.is-card-view) .portfolio-official-cell,
 #portfolioFundGrid:not(.is-card-view) .portfolio-official-cell>span,
 #portfolioFundGrid:not(.is-card-view) .portfolio-official-cell small{text-align:center}
+
+/* Fund details: one identity heading, description, facts, then spaced actions. */
+.portfolio-dialog.is-fund-details{width:min(640px,calc(100vw - 24px));max-width:640px}
+.portfolio-dialog.is-fund-details .dialog-head{align-items:start;gap:16px}
+.is-fund-details #portfolioDialogTitle{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:baseline;gap:8px;flex:1;min-width:0;margin:0;font-size:18px;line-height:1.5}
+.is-fund-details #portfolioDialogTitle .portfolio-ticker{padding:5px 8px;font-size:17px;font-weight:700;line-height:1.4;white-space:nowrap;letter-spacing:0}
+.portfolio-fund-title-separator{color:#929287;font-weight:400}
+.portfolio-fund-title-name{text-align:right;color:#20251f;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.is-fund-details .dialog-head>[data-close-portfolio-dialog]{flex-shrink:0;min-height:40px;margin:0}
+.is-fund-details .portfolio-fund-description-copy{font-size:15px;color:#73766d;line-height:1.8;margin-bottom:18px}
+.is-fund-details .portfolio-detail-list{margin-top:0}
+.is-fund-details .portfolio-detail-list>div{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:14px;align-items:baseline;font-size:15px}
+.is-fund-details .portfolio-detail-list dt{color:#73766d;min-width:0}
+.is-fund-details .portfolio-detail-list dd{min-width:0;max-width:none;overflow-wrap:anywhere;color:#20251f}
+.portfolio-fund-detail-notes{font-size:14px;color:#73766d;line-height:1.7;margin-top:16px}
+.portfolio-fund-detail-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid #e5e3d9}
+#portfolioDialog .portfolio-fund-detail-actions>:is(button,a){display:flex;align-items:center;justify-content:center;min-width:0;width:100%;min-height:46px;margin:0;padding:10px 12px;border:1px solid #e5e3d9;border-radius:9px;background:#eeede5;color:#66552e;text-align:center;text-decoration:none;white-space:normal;overflow-wrap:anywhere;font-size:14px;line-height:1.5;box-sizing:border-box}
+#portfolioDialog .portfolio-fund-detail-actions>:is(button,a):hover{background:#eee7d3;border-color:#b49b60;box-shadow:0 0 0 3px #b49b6020}
+@media(max-width:540px){.portfolio-dialog.is-fund-details{padding:20px}.portfolio-dialog.is-fund-details .dialog-head{gap:10px}.is-fund-details #portfolioDialogTitle{font-size:17px;gap:6px}.is-fund-details #portfolioDialogTitle .portfolio-ticker{font-size:15px;padding:4px 6px}.is-fund-details .portfolio-close-label{display:none}.is-fund-details .dialog-head>[data-close-portfolio-dialog]{display:flex;align-items:center;justify-content:center;width:44px;min-height:44px;padding:0;font-size:18px}.portfolio-fund-detail-actions{grid-template-columns:minmax(0,1fr)}.is-fund-details .portfolio-detail-list>div{gap:10px;font-size:14px}}
+@media(max-width:540px){.portfolio-dialog.is-fund-details .dialog-head{display:block}.is-fund-details #portfolioDialogTitle{grid-template-columns:auto minmax(0,1fr);align-items:start}.is-fund-details #portfolioDialogTitle .portfolio-ticker{justify-self:start}.is-fund-details .portfolio-fund-title-separator{display:none}.is-fund-details .portfolio-fund-title-name{grid-column:1/-1;line-height:1.5}.is-fund-details .dialog-head>[data-close-portfolio-dialog]{position:absolute;top:0;inset-inline-end:0}}
+/* Scroll the facts inside the modal; the identity and close control stay clear. */
+.portfolio-dialog.is-fund-details[open]{display:flex;flex-direction:column;overflow:hidden;max-height:calc(100dvh - 32px)}
+.portfolio-dialog.is-fund-details .dialog-head{position:relative;top:auto;flex-shrink:0}
+.is-fund-details #portfolioDialogBody{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-inline-end:4px}
+@media(max-width:540px){.is-fund-details #portfolioDialogTitle{grid-template-rows:minmax(44px,auto) auto}}

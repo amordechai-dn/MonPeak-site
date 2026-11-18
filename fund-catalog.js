@@ -180,7 +180,7 @@ const extraListings=[
   "verifiedAt": "2026-11-15",
   "reviewedAt": "2026-11-15",
   "feeStatus": "issuer",
-  "description": "S&P 500",
+  "description": "קרן סל העוקבת אחר מדד S&P 500 של החברות הגדולות בארה״ב.",
   "exposure": "S&P 500",
   "benchmark": "S&P 500",
   "referenceSource": "https://zinuk-portfolio.lovable.app/recommended",

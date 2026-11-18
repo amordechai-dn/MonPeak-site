@@ -1,7 +1,7 @@
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.23.1';
-import {ratingMethod} from './portfolio-rating.js?v=1.23.1';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.23.1';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.23.1';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.23.2';
+import {ratingMethod} from './portfolio-rating.js?v=1.23.2';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.23.2';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.23.2';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -35,11 +35,18 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   <div id="portfolioView" role="tabpanel" tabindex="-1"></div>
  </section>
  <aside id="portfolioSummary" class="portfolio-summary" aria-label="סיכום התיק" tabindex="-1"></aside>
- </div><div class="portfolio-mobile-bar" id="portfolioMobileBar"></div><dialog class="help-dialog portfolio-dialog" id="portfolioDialog" aria-labelledby="portfolioDialogTitle"><div class="dialog-head"><h2 id="portfolioDialogTitle"></h2><button type="button" class="quiet" data-close-portfolio-dialog>סגירה ✕</button></div><div class="help-copy" id="portfolioDialogBody"></div></dialog>`;
+ </div><div class="portfolio-mobile-bar" id="portfolioMobileBar"></div><dialog class="help-dialog portfolio-dialog" id="portfolioDialog" aria-labelledby="portfolioDialogTitle"><div class="dialog-head"><h2 id="portfolioDialogTitle"></h2><button type="button" class="quiet" data-close-portfolio-dialog aria-label="סגירה"><span class="portfolio-close-label">סגירה</span> <span aria-hidden="true">✕</span></button></div><div class="help-copy" id="portfolioDialogBody"></div></dialog>`;
 
- function showDialog(title,body){
-  find('#portfolioDialogTitle').textContent=title;find('#portfolioDialogBody').innerHTML=body;
-  const dialog=find('#portfolioDialog');if(!dialog.open)dialog.showModal();dialog.scrollTop=0;
+ function showDialog(title,body,{fund=null}={}){
+  const heading=find('#portfolioDialogTitle'),dialog=find('#portfolioDialog');
+  heading.textContent=title;
+  dialog.classList.toggle('is-fund-details',Boolean(fund));
+  if(fund){
+   heading.innerHTML=`<bdi class="portfolio-ticker">${esc(fund.id)}</bdi><span class="portfolio-fund-title-separator" aria-hidden="true">–</span><span class="portfolio-fund-title-name" dir="auto">${esc(fund.name)}</span>`;
+   dialog.setAttribute('aria-describedby','portfolioFundDescription');
+  }else dialog.removeAttribute('aria-describedby');
+  find('#portfolioDialogBody').innerHTML=body;
+  if(!dialog.open)dialog.showModal();dialog.scrollTop=0;find('#portfolioDialogBody').scrollTop=0;
   if(!motion())dialog.animate([{opacity:0,transform:'translateY(5px)'},{opacity:1,transform:'translateY(0)'}],{duration:150,easing:'ease-out'});
  }
  let closing=false;
@@ -287,10 +294,51 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   renderMobileBar(a);
   find('#portfolioSummary').innerHTML=`<div class="portfolio-summary-heading"><h2>סיכום התיק</h2>${info('allocation','חלוקת התיק')}</div><div class="portfolio-summary-kpis"><div><span>הקצאה</span><strong class="${invalid||a.over?'target-missed':a.complete?'target-met':''}">${invalid?'שגיאה':pct(a.weight)}</strong><small>${a.over?'חריגה '+pct(a.weight-100):'נותרו '+pct(Math.max(0,100-a.weight))}</small></div><div><span>עלות שנתית ${info('fee','עלות שנתית משוקללת')}</span><strong>${pct(a.weightedFee)}</strong>${a.weightedFee===null&&a.allocated>0?'<small>חסרים נתוני עלות</small>':!a.complete&&a.allocated>0?'<small>בחלק שהוקצה</small>':''}</div><div><span>תשואה שנתית משוערת ${info('returns','הנחות התשואה')}</span><strong>${returnPct(projection.gross)}</strong><small>${!a.complete?'נדרשת הקצאה של 100%':!projection.valid?(projection.excludedWeight>0&&projection.includedWeight===0?'כל הנכסים הוגדרו 0%':'יש להשלים הנחות תשואה'):`מבוסס על ${number(projection.includedWeight)}% מהתיק`}</small></div>${projection.groups.length?`<div class="portfolio-group-returns"><h3>תשואה משוערת לפי סוג נכס ${info('returns','הנחות התשואה')}</h3>${projection.groups.map(g=>`<div><span>${categories[g.key]?.name||'מידע חסר'}</span><strong>${returnPct(g.assumedReturn)}</strong></div>`).join('')}</div>`:''}</div>${a.rows.some(r=>r.amount>0&&r.fund?.fee===null&&Number.isFinite(r.fund?.reportedFee))?`<label class="portfolio-estimate-toggle"><input type="checkbox" data-include-reported ${state.includeReported?'checked':''}>שימוש בעלויות לא מאומתות כאומדן</label>`:''}${a.rows.some(r=>r.amount>0&&r.fund?.feeStatus==='reference')?`<p class="portfolio-fee-note">${referenceCostNote}</p>`:''}${a.estimatedAmount>0?'<p class="portfolio-fee-note">העלות כוללת אומדנים לא מאומתים.</p>':''}${chartsHTML(state)}<div class="portfolio-scores-title"><h3 class="portfolio-scores-heading">ציוני התיק</h3><button type="button" class="portfolio-score-source" data-scoring-method>שיטת MonPeak</button></div>${scoreHTML(state)}${insightsHTML(state)}<div class="portfolio-summary-actions"><button type="button" class="primary" data-save-portfolio ${!state.rows.length||invalid||a.over?'disabled':''}>שמירת תיק</button>${state.rows.length?'<button type="button" class="text-button" data-export-portfolio>הורדת CSV</button>':''}</div>`;
  }
- function fundDetails(id){
-  const f=funds.find(x=>x.id===id);if(!f){showDialog(id,'<p>הנייר אינו נמצא בספרייה הנוכחית. העלות שלו לא נכללת כאפס בחישוב.</p>');return;}
-  showDialog(f.id,`<p dir="auto">${esc(f.name)}</p><p>${esc(f.description)}</p><dl class="portfolio-detail-list">${[['מדד / נכס ייחוס',f.benchmark],['CAGR היסטורי',Number.isFinite(f.history?.rate)?number(f.history.rate)+'% ('+number(f.history.years,1)+' שנים)':'לא אומת'],['דמי ניהול שנתיים',f.fee===null?'טרם אומתו':number(f.fee,4)+'%'],['עלות שנתית נוספת',Number.isFinite(f.extraFee)?number(f.extraFee,4)+'%':f.extraFee===null?(f.feeStatus==='reference'?'לא פורטה במקור':'טרם אומתה'):'לא צוינה בנפרד'],['מספר נייר / סימול',f.id],['ISIN',f.isin||'לא אומת'],['מנפיק',f.issuer],['מדינה',f.domicile],['מטבע מסחר',f.currency],['מדיניות חלוקה',f.distribution],['שיטת עקיבה',f.replication],['גידור',f.hedging],['מקור דמי הניהול',feeSourceLabel(f)],['תאריך בדיקת העלות',reviewDate(f.feeStatus==='reference'?f.reviewedAt:f.verifiedAt)]].map(([label,value])=>`<div><dt>${label}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>${f.listingNote?`<p>${esc(f.listingNote)}</p>`:''}${f.feeStatus==='reference'?`<p>${referenceCostNote}${f.fee===0?' 0% מתייחס לדמי הניהול בלבד, ולא לפטור מכל עלות.':''}</p>`:''}${f.fee===null?`<p>באתר שנבדק דווח ${pct(f.reportedFee)}. הנתון אינו מאומת מול דיווח עדכני, ועלויות נאמן/ניהול משתנות אינן ידועות.</p>`:Number.isFinite(f.reportedFee)&&f.reportedFee!==f.fee?`<p>באתר שנבדק הופיע ${pct(f.reportedFee)}. כאן נעשה שימוש בנתון המקור הרשמי: ${pct(f.fee)}.</p>`:''}<button type="button" class="text-button" data-return-source="${f.id}">מקור ותקופת התשואה ההיסטורית</button><a class="help-source" href="${f.source}" target="_blank" rel="noopener noreferrer">מקור רשמי ופרטי המוצר ↗</a>${f.referenceSource?`<p><a class="help-source" href="${f.referenceSource}" target="_blank" rel="noopener noreferrer">${f.feeStatus==='reference'?'זינוק · מקור דמי הניהול':'זינוק · מקור ההשוואה'}</a></p>`:''}`);
+ function fundSummary(f){
+  const description=f.description||'';
+  if(/[א-ת]/.test(description)&&!description.includes('·')&&description.trim().split(/\s+/).length>=7)return description;
+  if(f.category==='gold')return 'מוצר העוקב אחר מחיר הזהב.';
+  if(f.category==='crypto')return `מוצר העוקב אחר מחיר ${{IBIT:'ביטקוין',ETHA:'אתריום',ASOL:'סולאנה',AADA:'קרדאנו'}[f.id]||f.benchmark}.`;
+  if(['USO','CRUD'].includes(f.id))return 'מוצר המספק חשיפה לנפט באמצעות חוזים עתידיים.';
+  if(f.id==='SLV')return 'מוצר העוקב אחר מחיר הכסף.';
+  if(f.group==='value')return 'קרן מנוהלת המתמקדת במניות של חברות קטנות עם הטיית ערך בשווקים מפותחים.';
+  if(f.group==='nasdaq')return 'קרן העוקבת אחר מדד נאסד״ק 100 של חברות גדולות שאינן פיננסיות.';
+  if(f.group==='sp500')return 'קרן העוקבת אחר מדד S&P 500 של החברות הגדולות בארה״ב.';
+  if(f.group==='other-us')return 'קרן העוקבת אחר מדד Russell 2000 של חברות קטנות בארה״ב.';
+  if(f.group==='emerging')return 'קרן המספקת חשיפה למניות בשווקים מתעוררים.';
+  if(f.group==='telaviv')return `קרן העוקבת אחר מדד ${f.benchmark} בבורסה בתל אביב.`;
+  if(f.category==='bonds')return `קרן המספקת חשיפה לאיגרות חוב לפי מדד ${f.benchmark}.`;
+  return description;
  }
+ function fundDetails(id){
+  const f=funds.find(x=>x.id===id);
+  if(!f){showDialog(id,'<p>הנייר אינו נמצא בספרייה הנוכחית. העלות שלו לא נכללת כאפס בחישוב.</p>');return;}
+  const fields=[
+   ['מדד / נכס ייחוס',f.benchmark],
+   ['CAGR היסטורי',Number.isFinite(f.history?.rate)?number(f.history.rate)+'% ('+number(f.history.years,1)+' שנים)':'לא אומת'],
+   ['דמי ניהול שנתיים',f.fee===null?'טרם אומתו':number(f.fee,4)+'%'],
+   ['עלות שנתית נוספת',Number.isFinite(f.extraFee)?number(f.extraFee,4)+'%':f.extraFee===null?(f.feeStatus==='reference'?'לא פורטה במקור':'טרם אומתה'):'לא צוינה בנפרד'],
+   ['מספר נייר / סימול',f.id],['ISIN',f.isin||'לא אומת'],['מנפיק',f.issuer],
+   ['מדינה',f.domicile],['מטבע מסחר',f.currency],['מדיניות חלוקה',f.distribution],
+   ['שיטת עקיבה',f.replication],['גידור',f.hedging],['מקור דמי הניהול',feeSourceLabel(f)],
+   ['תאריך בדיקת העלות',reviewDate(f.feeStatus==='reference'?f.reviewedAt:f.verifiedAt)]
+  ];
+  const notes=[
+   f.listingNote,
+   f.feeStatus==='reference'?referenceCostNote+(f.fee===0?' 0% מתייחס לדמי הניהול בלבד, ולא לפטור מכל עלות.':''):'',
+   f.fee===null?`באתר שנבדק דווח ${pct(f.reportedFee)}. הנתון אינו מאומת מול דיווח עדכני, ועלויות נאמן/ניהול משתנות אינן ידועות.`:Number.isFinite(f.reportedFee)&&f.reportedFee!==f.fee?`באתר שנבדק הופיע ${pct(f.reportedFee)}. כאן נעשה שימוש בנתון המקור הרשמי: ${pct(f.fee)}.`:''
+  ].filter(Boolean);
+  showDialog(f.id,`
+   <p class="portfolio-fund-description-copy" id="portfolioFundDescription" dir="rtl">${esc(fundSummary(f))}</p>
+   <dl class="portfolio-detail-list">${fields.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd><bdi dir="auto">${esc(value)}</bdi></dd></div>`).join('')}</dl>
+   ${notes.length?`<div class="portfolio-fund-detail-notes">${notes.map(note=>`<p>${esc(note)}</p>`).join('')}</div>`:''}
+   <div class="portfolio-fund-detail-actions" role="group" aria-label="מקורות ומידע נוסף על הקרן">
+    <button type="button" class="text-button" data-return-source="${f.id}">מקור ותקופת התשואה ההיסטורית</button>
+    <a class="help-source" href="${esc(f.source)}" target="_blank" rel="noopener noreferrer">מקור רשמי ופרטי המוצר ↗</a>
+    ${f.referenceSource?`<a class="help-source" href="${esc(f.referenceSource)}" target="_blank" rel="noopener noreferrer">${f.feeStatus==='reference'?'זינוק · מקור דמי הניהול':'זינוק · מקור ההשוואה'} ↗</a>`:''}
+   </div>`,{fund:f});
+ }
+
  function save(){const s=analyzePortfolio(state,funds);if(!state.rows.length||!s.validBudget||s.invalid||s.over)return;onSave({...normalizePortfolio(state),catalogVersion});}
  function exportCSV(){
   const s=analyzePortfolio(state,funds);if(s.invalid||!s.validBudget){notify('יש לתקן את הערכים לפני הייצוא.');return;}
