@@ -424,3 +424,9 @@ body{font-size:16px;line-height:1.65}nav a{font-size:14px}.quiet,.text-button,.p
 header .header-actions #savedToggle .saved-icon{display:block;position:absolute;inset:0;width:100%;height:100%;stroke-width:1.8;z-index:-1}
 header .header-actions #savedToggle #saveCount{display:block;width:auto;min-width:24px;height:auto;padding:0 5px;margin:0 0 8px;border:0;border-radius:0;background:transparent;color:inherit;font-size:14px;font-weight:600;line-height:1.2;text-align:center}
 @media(max-width:540px){.header-actions #savedToggle{gap:6px;padding:3px 8px;min-height:46px}#savedToggle .saved-mark{min-width:31px;height:37px}header .header-actions #savedToggle #saveCount{font-size:13px}}
+
+.portfolio-score-source{background:transparent;padding:4px 0;cursor:pointer;min-height:36px}
+.portfolio-rating-status{display:block;font-size:13px;line-height:1.5;color:#75613a;margin-top:4px;font-weight:400}
+.portfolio-score>.portfolio-rating-status{grid-column:1/-1}
+.portfolio-mini-scores .portfolio-rating-status{font-size:13px;color:#75613a}
+.comparison-score-explanations .portfolio-rating-status{margin-top:8px}
