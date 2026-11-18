@@ -1,14 +1,15 @@
-import {bindInputUpdates} from './input-updates.js?v=1.24.3';
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.24.3';
-import {ratingMethod} from './portfolio-rating.js?v=1.24.3';
-import {portfolioVolatility,portfolioVolatilityGroup} from './portfolio-risk.js?v=1.24.3';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.24.3';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.24.3';
+import {bindInputUpdates} from './input-updates.js?v=1.24.4';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.24.4';
+import {ratingMethod} from './portfolio-rating.js?v=1.24.4';
+import {portfolioVolatility,portfolioVolatilityGroup} from './portfolio-risk.js?v=1.24.4';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.24.4';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.24.4';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
 const riskPct=n=>!Number.isFinite(n)?'—':`<bdi>${number(n,2)}%</bdi>`;
 const pct=n=>!Number.isFinite(n)?'—':`<bdi>${number(n,4)}%</bdi>`;
+const domicileLabel=value=>({'אירלנד':'אירית','ארה״ב':'אמריקאית'}[value]||value);
 const annualFundCost=f=>Number.isFinite(f.fee)?f.fee+(Number.isFinite(f.extraFee)?f.extraFee:0):null;
 const feeSourceURL=f=>f.feeSource||f.source;
 const feeSourceLabel=f=>f.feeStatus==='reference'?'זינוק פיננסי':'מקור רשמי';
@@ -89,7 +90,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   renderCards();
  }
  function openLibraryFilters(){
-  showDialog('סינון ומיון',`<div class="portfolio-filter-dialog"><div class="portfolio-filter-options"><h3>קטגוריה</h3><div class="portfolio-chips" role="group" aria-label="קטגוריות">${[['all','הכול'],...Object.entries(fundGroups)].map(([key,label])=>`<button type="button" data-category="${key}" aria-pressed="${category===key}">${label} <small>${key==='all'?funds.length:funds.filter(f=>f.group===key).length}</small></button>`).join('')}</div><h3>דיבידנדים</h3><div class="portfolio-chips" role="group" aria-label="חלוקת דיבידנד">${['all','צוברת','מחלקת','ללא חלוקה'].map(value=>`<button type="button" data-distribution="${value}" aria-pressed="${distribution===value}">${value==='all'?'כל סוגי החלוקה':value}</button>`).join('')}</div><h3>מדינה</h3><div class="portfolio-chips" role="group" aria-label="מדינה">${['all',...new Set(funds.map(f=>f.domicile))].map(value=>`<button type="button" data-domicile="${esc(value)}" aria-pressed="${domicile===value}">${value==='all'?'כל המדינות':value}</button>`).join('')}</div><h3>מיון</h3><div class="portfolio-sort" role="group" aria-label="מיון קרנות"><button type="button" data-sort="default" aria-pressed="${sort==='default'}">קבוצות נפוצות</button><button type="button" data-sort="fee" aria-pressed="${sort==='fee'}">דמי ניהול ↑</button><button type="button" data-sort="name" aria-pressed="${sort==='name'}">שם</button></div></div><div class="portfolio-filter-footer"><button type="button" class="text-button" data-reset-library-filters>איפוס סינון</button><button type="button" class="primary" data-close-portfolio-dialog data-filter-results></button></div></div>`);
+  showDialog('סינון ומיון',`<div class="portfolio-filter-dialog"><div class="portfolio-filter-options"><h3>קטגוריה</h3><div class="portfolio-chips" role="group" aria-label="קטגוריות">${[['all','הכול'],...Object.entries(fundGroups)].map(([key,label])=>`<button type="button" data-category="${key}" aria-pressed="${category===key}">${label} <small>${key==='all'?funds.length:funds.filter(f=>f.group===key).length}</small></button>`).join('')}</div><h3>דיבידנדים</h3><div class="portfolio-chips" role="group" aria-label="חלוקת דיבידנד">${['all','צוברת','מחלקת','ללא חלוקה'].map(value=>`<button type="button" data-distribution="${value}" aria-pressed="${distribution===value}">${value==='all'?'כל סוגי החלוקה':value}</button>`).join('')}</div><h3>מדינה</h3><div class="portfolio-chips" role="group" aria-label="מדינה">${['all',...new Set(funds.map(f=>f.domicile))].map(value=>`<button type="button" data-domicile="${esc(value)}" aria-pressed="${domicile===value}">${value==='all'?'כל המדינות':esc(domicileLabel(value))}</button>`).join('')}</div><h3>מיון</h3><div class="portfolio-sort" role="group" aria-label="מיון קרנות"><button type="button" data-sort="default" aria-pressed="${sort==='default'}">קבוצות נפוצות</button><button type="button" data-sort="fee" aria-pressed="${sort==='fee'}">דמי ניהול ↑</button><button type="button" data-sort="name" aria-pressed="${sort==='name'}">שם</button></div></div><div class="portfolio-filter-footer"><button type="button" class="text-button" data-reset-library-filters>איפוס סינון</button><button type="button" class="primary" data-close-portfolio-dialog data-filter-results></button></div></div>`);
   syncLibraryFilterUI(filterFunds(funds,{query,category,sort,distribution,domicile}).length);
  }
  function syncLibraryFilterUI(count){
@@ -119,7 +120,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   let previousGroup=null;
   find('#portfolioFundGrid').innerHTML=matches.length?`<table class="portfolio-catalog-table"><caption class="sr-only">ספריית קרנות להשוואה ולהוספה לתיק</caption><thead><tr>${['סימול / מספר','שם','עלות בשנה','מדינה','מטבע מסחר','חלוקת דיבידנדים','שיטת עקיבה','פעולות'].map(x=>`<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${matches.map(f=>{
    const added=selected.includes(f.id),cost=annualFundCost(f),siblings=funds.filter(x=>x.id!==f.id&&x.fundKey===f.fundKey),group=libraryView==='cards'&&sort==='default'&&previousGroup!==f.group?`<tr class="portfolio-group-heading"><th colspan="8" scope="colgroup">${esc(fundGroups[f.group]||'נוספים')}</th></tr>`:'';previousGroup=f.group;
-   return `${group}<tr class="portfolio-catalog-fund"><td class="portfolio-code-cell">${fundIdentity(f)}</td><td data-label="שם" class="portfolio-official-cell"><span dir="${/[א-ת]/.test(f.name)?'rtl':'ltr'}">${esc(f.name)}</span>${siblings.length?`<small>אותה קרן גם ב־<bdi>${siblings.map(x=>esc(x.id)).join(' / ')}</bdi></small>`:''}</td><td data-label="עלות בשנה" class="portfolio-cost-cell">${cost===null?'<span class="portfolio-unverified">לא אומתה</span>':pct(cost)}</td><td data-label="מדינה">${esc(f.domicile)}</td><td data-label="מטבע מסחר"><bdi>${esc(f.currency)}</bdi></td><td data-label="חלוקת דיבידנדים">${esc(f.distribution)}</td><td data-label="שיטת עקיבה" class="portfolio-method-cell"><span>${esc(f.replication)}</span></td><td class="portfolio-catalog-actions">${fundActions(f,added)}</td></tr>`;
+   return `${group}<tr class="portfolio-catalog-fund"><td class="portfolio-code-cell">${fundIdentity(f)}</td><td data-label="שם" class="portfolio-official-cell"><span dir="${/[א-ת]/.test(f.name)?'rtl':'ltr'}">${esc(f.name)}</span>${siblings.length?`<small>אותה קרן גם ב־<bdi>${siblings.map(x=>esc(x.id)).join(' / ')}</bdi></small>`:''}</td><td data-label="עלות בשנה" class="portfolio-cost-cell">${cost===null?'<span class="portfolio-unverified">לא אומתה</span>':pct(cost)}</td><td data-label="מדינה">${esc(domicileLabel(f.domicile))}</td><td data-label="מטבע מסחר"><bdi>${esc(f.currency)}</bdi></td><td data-label="חלוקת דיבידנדים">${esc(f.distribution)}</td><td data-label="שיטת עקיבה" class="portfolio-method-cell"><span>${esc(f.replication)}</span></td><td class="portfolio-catalog-actions">${fundActions(f,added)}</td></tr>`;
   }).join('')}</tbody></table>`:`<div class="portfolio-empty-search"><h3>לא נמצאו קרנות</h3><button type="button" class="text-button" data-clear-filters>איפוס חיפוש וסינון</button></div>`;
  }
  function advantageCell(metric,index,value,{win='יתרון במדד',other='פחות עדיף במדד',historical=false}={}){
@@ -131,7 +132,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   else{label=other;kind=historical?'neutral':'less';}
   return `<div class="comparison-value comparison-${kind}"><strong>${value}</strong><span class="comparison-badge">${label}</span></div>`;
  }
- function featureCells(selected,key,formatter=f=>esc(f[key]||'לא צוין')){
+ function featureCells(selected,key,formatter=f=>esc((key==='domicile'?domicileLabel(f[key]):f[key])||'לא צוין')){
   return selected.map(f=>`<td><div class="comparison-value comparison-neutral"><span>${formatter(f)}</span></div></td>`).join('');
  }
  function featureLabel(label,selected,key){return `${label}<small class="comparison-feature-note">${new Set(selected.map(f=>f[key])).size===1?'זהה':'תלוי בהעדפה'}</small>`;}
@@ -303,7 +304,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  }
  function holdingFacts(id){
   const fund=funds.find(f=>f.id===id);if(!fund)return '';
-  const cost=annualFundCost(fund),facts=[['עלות שנתית',cost===null?'עלות לא ידועה':pct(cost)],['מדינה',esc(fund.domicile)],['דיבידנדים',esc(fund.distribution)],['שיטת עקיבה',esc(fund.replication?.replace(' · Swap',''))]].filter(([,value])=>value);
+  const cost=annualFundCost(fund),facts=[['עלות שנתית',cost===null?'עלות לא ידועה':pct(cost)],['מדינה',esc(domicileLabel(fund.domicile))],['דיבידנדים',esc(fund.distribution)],['שיטת עקיבה',esc(fund.replication?.replace(' · Swap',''))]].filter(([,value])=>value);
   return `<p class="portfolio-holding-facts" aria-label="מאפייני הקרן">${facts.map(([label,value])=>`<span><span class="sr-only">${label}: </span>${value}</span>`).join('')}</p>`;
  }
  function renderBuilder(){
@@ -359,7 +360,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
    ['דמי ניהול שנתיים',f.fee===null?'טרם אומתו':number(f.fee,4)+'%'],
    ['עלות שנתית נוספת',Number.isFinite(f.extraFee)?number(f.extraFee,4)+'%':f.extraFee===null?(f.feeStatus==='reference'?'לא פורטה במקור':'טרם אומתה'):'לא צוינה בנפרד'],
    ['מספר נייר / סימול',f.id],['ISIN',f.isin||'לא אומת'],['מנפיק',f.issuer],
-   ['מדינה',f.domicile],['מטבע מסחר',f.currency],['מדיניות חלוקה',f.distribution],
+   ['מדינה',domicileLabel(f.domicile)],['מטבע מסחר',f.currency],['מדיניות חלוקה',f.distribution],
    ['שיטת עקיבה',f.replication],['גידור',f.hedging],['מקור דמי הניהול',feeSourceLabel(f)],
    ['תאריך בדיקת העלות',reviewDate(f.feeStatus==='reference'?f.reviewedAt:f.verifiedAt)]
   ];
