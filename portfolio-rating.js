@@ -1,4 +1,4 @@
-import {exposureSnapshots} from './portfolio-exposures.js?v=1.23.3';
+import {exposureSnapshots} from './portfolio-exposures.js?v=1.24.0';
 
 // MonPeak policy, not an external rating or an investment suitability score.
 export const ratingVersion='MonPeak 1';

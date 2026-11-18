@@ -460,3 +460,17 @@ header .header-actions #savedToggle #saveCount{display:block;width:auto;min-widt
 .portfolio-dialog.is-fund-details .dialog-head{position:relative;top:auto;flex-shrink:0}
 .is-fund-details #portfolioDialogBody{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-inline-end:4px}
 @media(max-width:540px){.is-fund-details #portfolioDialogTitle{grid-template-rows:minmax(44px,auto) auto}}
+
+/* Historical volatility is a separate statistic, not a fourth portfolio grade. */
+.portfolio-summary-kpis{grid-template-columns:.8fr .9fr 1.05fr 1.1fr 1.25fr}
+.portfolio-risk-kpi>span{display:flex;align-items:center;gap:5px}
+.portfolio-risk-kpi .help-button{flex-shrink:0}
+.portfolio-risk-kpi small{line-height:1.65}
+.portfolio-example-risk{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:3px 12px;border-top:1px solid #e5e3d9;padding-top:12px}
+.portfolio-example-risk dd{margin:0}
+.portfolio-example-risk small{grid-column:1/-1;font-size:13px;line-height:1.6;color:#73766d}
+.comparison-financial-plan .comparison-volatility-metric{grid-column:1/-1;border-top:1px solid #e5e3d9;padding-top:14px}
+.comparison-volatility-metric .comparison-value{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.portfolio-risk-method summary{cursor:pointer;color:#856b34;min-height:36px}
+.portfolio-risk-method summary:hover{color:#5f491c;text-shadow:0 0 8px #b49b6030}
+@media(max-width:1100px){.portfolio-summary-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#portfolioRoot .portfolio-summary-kpis>.portfolio-group-returns{grid-column:1/-1}}
