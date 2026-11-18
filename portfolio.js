@@ -1,9 +1,9 @@
-import {bindInputUpdates,bindFrameUpdates} from './input-updates.js?v=1.28.2';
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.28.2';
-import {ratingMethod} from './portfolio-rating.js?v=1.28.2';
-import {portfolioVolatility,portfolioVolatilityGroup,fundVolatility,fundVolatilityGroup} from './portfolio-risk.js?v=1.28.2';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.28.2';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn,portfolioPieAllocation} from './portfolio-model.js?v=1.28.2';
+import {bindInputUpdates,bindFrameUpdates} from './input-updates.js?v=1.28.3';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.28.3';
+import {ratingMethod} from './portfolio-rating.js?v=1.28.3';
+import {portfolioVolatility,portfolioVolatilityGroup,fundVolatility,fundVolatilityGroup} from './portfolio-risk.js?v=1.28.3';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.28.3';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn,portfolioPieAllocation} from './portfolio-model.js?v=1.28.3';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -33,6 +33,9 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  const find=s=>root.querySelector(s),all=s=>[...root.querySelectorAll(s)];
  const fundRiskCache=new Map();
  const riskForFund=id=>{if(!fundRiskCache.has(id))fundRiskCache.set(id,fundVolatility(id,funds));return fundRiskCache.get(id);};
+ const libraryMedia=window.matchMedia('(max-width:800px)');
+ const onLibraryResize=()=>{if(root.isConnected&&tab==='library')renderCards();};
+ libraryMedia.addEventListener('change',onLibraryResize);
  const motion=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
  const persist=()=>{onChange(JSON.parse(JSON.stringify(state)));try{localStorage.setItem('monpeak-portfolio-draft',JSON.stringify(state));}catch{if(!storageWarned){notify('השמירה במכשיר אינה זמינה בדפדפן הזה. אפשר להוריד CSV.');storageWarned=true;}}};
  root.innerHTML=`<div class="portfolio-layout">
@@ -114,6 +117,10 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  function fundCompareChoice(f){
   return `<label class="portfolio-compare-choice" title="בחירה להשוואה"><input type="checkbox" data-select-fund="${f.id}" aria-label="השוואת ${f.id}" ${fundSelection.includes(f.id)?'checked':''} ${fundSelection.length>=3&&!fundSelection.includes(f.id)?'disabled':''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></svg></label>`;
  }
+ function mobileFundListRow(f,added){
+  const cost=annualFundCost(f),facts=[['עלות שנתית',cost===null?'<span class="portfolio-unverified">לא אומתה</span>':pct(cost)],['מדינה',esc(domicileLabel(f.domicile))],['מטבע מסחר',`<bdi>${esc(f.currency)}</bdi>`],['חלוקת דיבידנדים',esc(f.distribution)],['שיטת עקיבה',esc(f.replication)]];
+  return `<li class="portfolio-mobile-list-item" data-list-fund="${esc(f.id)}"><div class="portfolio-mobile-list-heading">${fundIdentity(f)}<span class="portfolio-mobile-list-name" dir="auto">${esc(f.name)}</span></div><div class="portfolio-mobile-list-facts" aria-label="מאפייני הקרן">${facts.map(([label,value])=>`<span><span class="sr-only">${label}: </span>${value}</span>`).join('')}</div><div class="portfolio-catalog-actions">${fundActions(f,added)}</div></li>`;
+ }
  function fundActions(f,added){
   return `<div class="portfolio-fund-action-row"><button type="button" class="primary" data-add-fund="${f.id}" ${added?'disabled':''} aria-label="${added?'כבר בתיק':'הוספת'} ${f.id}" title="${added?'כבר בתיק':'הוספה לתיק'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${added?'m5 12 4 4L19 6':'M12 5v14M5 12h14'}"/></svg></button><button type="button" class="text-button" data-fund-details="${f.id}" aria-label="פרטי ${f.id}" title="פרטים ומקור"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v.5"/></svg></button>${fundCompareChoice(f)}</div>`;
  }
@@ -125,6 +132,10 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   find('#portfolioFundGrid').className=`portfolio-catalog ${libraryView==='cards'?'is-card-view':''}`;
   all('[data-library-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.libraryView===libraryView)));
   find('#portfolioSelectionBar').innerHTML=fundSelection.length?`<span>${fundSelection.length} נבחרו</span><button type="button" class="text-button" data-open-fund-comparison ${fundSelection.length<2?'disabled':''}>השוואת קרנות</button><button type="button" class="quiet" data-clear-fund-selection>ניקוי</button>`:'';
+  if(libraryMedia.matches&&libraryView==='list'&&matches.length){
+   find('#portfolioFundGrid').innerHTML=`<ul class="portfolio-mobile-list" aria-label="רשימת קרנות">${matches.map(f=>mobileFundListRow(f,selected.includes(f.id))).join('')}</ul>`;
+   return;
+  }
   let previousGroup=null;
   find('#portfolioFundGrid').innerHTML=matches.length?`<table class="portfolio-catalog-table"><caption class="sr-only">ספריית קרנות להשוואה ולהוספה לתיק</caption><thead><tr>${['סימול / מספר','שם','עלות בשנה','מדינה','מטבע מסחר','חלוקת דיבידנדים','שיטת עקיבה','פעולות'].map(x=>`<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${matches.map(f=>{
    const added=selected.includes(f.id),cost=annualFundCost(f),siblings=funds.filter(x=>x.id!==f.id&&x.fundKey===f.fundKey),group=libraryView==='cards'&&sort==='default'&&previousGroup!==f.group?`<tr class="portfolio-group-heading"><th colspan="8" scope="colgroup">${esc(fundGroups[f.group]||'נוספים')}</th></tr>`:'';previousGroup=f.group;
@@ -523,5 +534,5 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   if(button.hasAttribute('data-show-summary')){if(tab!=='builder')setTab('builder');find('#portfolioSummary').focus({preventScroll:true});find('#portfolioSummary').scrollIntoView({behavior:motion()?'instant':'smooth',block:'start'});}
  });
  persist();renderView();
- return {destroy:()=>{pieUpdates.destroy();inputUpdates.destroy();},compareWith:data=>{comparison=percentagePortfolio(data);persistComparison();setTab('compare',{focus:true});}};
+ return {destroy:()=>{libraryMedia.removeEventListener('change',onLibraryResize);pieUpdates.destroy();inputUpdates.destroy();},compareWith:data=>{comparison=percentagePortfolio(data);persistComparison();setTab('compare',{focus:true});}};
 }

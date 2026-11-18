@@ -587,3 +587,19 @@ header .header-actions #savedToggle #saveCount{display:block;width:auto;min-widt
 .rating-method-detail-grid{grid-template-columns:minmax(0,1fr)}
 .rating-method-detail{min-width:0}
 .rating-method-detail table{table-layout:fixed;max-width:100%}
+
+/* Mobile list rows are a distinct compact layout, rather than duplicate cards. */
+.portfolio-mobile-list{list-style:none;margin:0;padding:0;border:1px solid #e5e3d9;border-radius:12px;overflow:hidden;background:#fbfaf6}
+.portfolio-mobile-list-item{display:grid;gap:8px;margin:0;padding:13px 12px;border-bottom:1px solid #e5e3d9;min-width:0}
+.portfolio-mobile-list-item:last-child{border-bottom:0}
+.portfolio-mobile-list-heading{display:flex;align-items:flex-start;gap:10px;min-width:0}
+.portfolio-mobile-list-heading .portfolio-ticker{flex-shrink:0;max-width:92px;font-size:15px;line-height:1.4;padding:4px 6px;white-space:nowrap}
+.portfolio-mobile-list-name{flex:1;min-width:0;color:#20251f;font-size:15px;font-weight:700;line-height:1.5;text-align:right;overflow-wrap:anywhere}
+.portfolio-mobile-list-facts{display:flex;align-items:baseline;flex-wrap:wrap;gap:3px 9px;font-size:14px;line-height:1.6;color:#73766d}
+.portfolio-mobile-list-facts>span{display:inline-flex;align-items:baseline;gap:4px;unicode-bidi:isolate}
+.portfolio-mobile-list-facts>span:first-child{color:#20251f;font-weight:600}
+.portfolio-mobile-list-facts>span+span:before{content:'\00b7';color:#a5a397;margin-inline-end:3px}
+.portfolio-mobile-list-item>.portfolio-catalog-actions{padding:0;border:0;min-width:0}
+.portfolio-mobile-list-item .portfolio-fund-action-row{grid-template-columns:repeat(3,44px);justify-content:end;gap:6px}
+.portfolio-mobile-list-item .portfolio-fund-action-row>button,.portfolio-mobile-list-item .portfolio-fund-action-row>.portfolio-compare-choice{height:44px;min-height:44px}
+@media(max-width:360px){.portfolio-mobile-list-item{padding:12px 10px}.portfolio-mobile-list-heading{gap:8px}.portfolio-mobile-list-heading .portfolio-ticker{font-size:14px;max-width:86px}.portfolio-mobile-list-name{font-size:14px}}
