@@ -1,9 +1,9 @@
-import {bindInputUpdates} from './input-updates.js?v=1.27.0';
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.27.0';
-import {ratingMethod} from './portfolio-rating.js?v=1.27.0';
-import {portfolioVolatility,portfolioVolatilityGroup,fundVolatility,fundVolatilityGroup} from './portfolio-risk.js?v=1.27.0';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.27.0';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.27.0';
+import {bindInputUpdates} from './input-updates.js?v=1.27.1';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.27.1';
+import {ratingMethod} from './portfolio-rating.js?v=1.27.1';
+import {portfolioVolatility,portfolioVolatilityGroup,fundVolatility,fundVolatilityGroup} from './portfolio-risk.js?v=1.27.1';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.27.1';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.27.1';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
