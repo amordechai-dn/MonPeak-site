@@ -515,3 +515,9 @@ header .header-actions #savedToggle #saveCount{display:block;width:auto;min-widt
 .portfolio-holding-risk>strong{font-size:16px;color:#20251f;font-weight:600;font-variant-numeric:tabular-nums}
 .portfolio-holding-risk>small{font-size:13px;line-height:1.6}
 @media(max-width:540px){.portfolio-holding-risk>small{flex-basis:100%}}
+
+/* MMP wordmark keeps the established mountain symbol and restrained palette. */
+.brand>span{letter-spacing:.035em}
+.footer-brand-block{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
+.footer-tagline{font-size:14px;line-height:1.5;letter-spacing:.02em;color:#bcc5b2;white-space:nowrap}
+@media(max-width:360px){.footer-tagline{font-size:13px;letter-spacing:0}.footer-inner{column-gap:10px}}
