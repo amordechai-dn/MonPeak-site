@@ -494,3 +494,18 @@ header .header-actions #savedToggle #saveCount{display:block;width:auto;min-widt
  #portfolioFundGrid:not(.is-card-view) .portfolio-catalog-table th:nth-child(7){width:8%;text-align:center}
  #portfolioFundGrid:not(.is-card-view) .portfolio-method-cell{text-align:center}
 }
+
+/* Add a holding: a single plain identity heading and an unboxed form. */
+.portfolio-dialog.is-fund-allocation{width:min(560px,calc(100vw - 24px));max-width:560px;color:#20251f}
+.portfolio-dialog.is-fund-allocation .dialog-head{display:block;position:relative;top:auto;padding:0;border:0}
+.is-fund-allocation #portfolioDialogTitle{padding-inline-end:48px;font-size:20px;font-weight:600;line-height:1.6;overflow-wrap:anywhere}
+#portfolioRoot .is-fund-allocation .dialog-head>[data-close-portfolio-dialog]{position:absolute;top:0;inset-inline-end:0;display:flex;align-items:center;justify-content:center;width:40px;height:40px;min-height:40px;padding:0;border:0;border-radius:8px;background:transparent;box-shadow:none;color:#73766d;transition:background .15s,color .15s,box-shadow .15s}
+.is-fund-allocation .portfolio-close-label{display:none}
+#portfolioRoot .is-fund-allocation .dialog-head>[data-close-portfolio-dialog]:hover{background:#eeede5;color:#20251f;box-shadow:0 0 0 3px #b49b6020}
+.is-fund-allocation #portfolioDialogBody{margin-top:24px}
+.is-fund-allocation #portfolioAllocationForm{background:transparent;border:0;border-radius:0;padding:0;box-shadow:none;gap:16px}
+.is-fund-allocation #portfolioAllocationForm p{margin:0}
+.is-fund-allocation #portfolioAddAfter:empty{display:none}
+.is-fund-allocation .portfolio-add-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}
+.is-fund-allocation .portfolio-add-actions button{min-width:0;font-size:15px;padding:10px 8px}
+@media(max-width:540px){.is-fund-allocation #portfolioDialogTitle{font-size:18px}#portfolioRoot .is-fund-allocation .dialog-head>[data-close-portfolio-dialog]{width:44px;height:44px}}

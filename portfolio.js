@@ -1,9 +1,9 @@
-import {bindInputUpdates} from './input-updates.js?v=1.25.0';
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.25.0';
-import {ratingMethod} from './portfolio-rating.js?v=1.25.0';
-import {portfolioVolatility,portfolioVolatilityGroup} from './portfolio-risk.js?v=1.25.0';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.25.0';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.25.0';
+import {bindInputUpdates} from './input-updates.js?v=1.25.1';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.25.1';
+import {ratingMethod} from './portfolio-rating.js?v=1.25.1';
+import {portfolioVolatility,portfolioVolatilityGroup} from './portfolio-risk.js?v=1.25.1';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.25.1';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.25.1';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -41,14 +41,16 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  <aside id="portfolioSummary" class="portfolio-summary" aria-label="סיכום התיק" tabindex="-1"></aside>
  </div><div class="portfolio-mobile-bar" id="portfolioMobileBar"></div><dialog class="help-dialog portfolio-dialog" id="portfolioDialog" aria-labelledby="portfolioDialogTitle"><div class="dialog-head"><h2 id="portfolioDialogTitle"></h2><button type="button" class="quiet" data-close-portfolio-dialog aria-label="סגירה"><span class="portfolio-close-label">סגירה</span> <span aria-hidden="true">✕</span></button></div><div class="help-copy" id="portfolioDialogBody"></div></dialog>`;
 
- function showDialog(title,body,{fund=null}={}){
+ function showDialog(title,body,{fund=null,allocationFund=null}={}){
   const heading=find('#portfolioDialogTitle'),dialog=find('#portfolioDialog');
   heading.textContent=title;
   dialog.classList.toggle('is-fund-details',Boolean(fund));
+  dialog.classList.toggle('is-fund-allocation',Boolean(allocationFund));
   if(fund){
    heading.innerHTML=`<bdi class="portfolio-ticker">${esc(fund.id)}</bdi><span class="portfolio-fund-title-separator" aria-hidden="true">–</span><span class="portfolio-fund-title-name" dir="auto">${esc(fund.name)}</span>`;
    dialog.setAttribute('aria-describedby','portfolioFundDescription');
   }else dialog.removeAttribute('aria-describedby');
+  if(allocationFund)heading.innerHTML=`<span>הוספת:</span> <bdi dir="auto">${esc(allocationFund.id)} - ${esc(allocationFund.name)}</bdi>`;
   find('#portfolioDialogBody').innerHTML=body;
   if(!dialog.open)dialog.showModal();dialog.scrollTop=0;find('#portfolioDialogBody').scrollTop=0;
   if(!motion())dialog.animate([{opacity:0,transform:'translateY(5px)'},{opacity:1,transform:'translateY(0)'}],{duration:150,easing:'ease-out'});
@@ -170,7 +172,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   const f=funds.find(f=>f.id===id),target=libraryTarget==='comparison'?comparison:state;
   if(!f||!target)return;pendingAllocation={id,mode:'percent',target:libraryTarget};
   const summary=analyzePortfolio(target,funds);
-  showDialog(`הוספת ${id}`,`<p class="portfolio-allocation-name" dir="auto">${esc(f.name)}</p><form id="portfolioAllocationForm" novalidate><label class="field" for="portfolioAddValue">משקל בתיק<span class="input-wrap"><input id="portfolioAddValue" type="text" inputmode="decimal" dir="ltr" autocomplete="off" value="${esc(value)}" aria-describedby="portfolioAddBalance portfolioAddError"><span class="unit">%</span></span></label><p id="portfolioAddBalance" class="portfolio-add-balance">נותרו להקצאה: ${pct(Math.max(0,100-summary.weight))}</p><p id="portfolioAddAfter" class="portfolio-add-balance" role="status"></p><p id="portfolioAddError" class="portfolio-field-error" role="alert"></p><div class="portfolio-add-actions"><button type="submit" class="primary">הוספה לתיק</button><button type="button" class="text-button" data-fill-add>הקצאת היתרה</button></div></form>`);find('#portfolioAddValue').focus({preventScroll:true});
+  showDialog(`הוספת: ${id} - ${f.name}`,`<form id="portfolioAllocationForm" novalidate><label class="field" for="portfolioAddValue">משקל בתיק<span class="input-wrap"><input id="portfolioAddValue" type="text" inputmode="decimal" dir="ltr" autocomplete="off" value="${esc(value)}" aria-describedby="portfolioAddBalance portfolioAddError"><span class="unit">%</span></span></label><p id="portfolioAddBalance" class="portfolio-add-balance">נותרו להקצאה: ${pct(Math.max(0,100-summary.weight))}</p><p id="portfolioAddAfter" class="portfolio-add-balance" role="status"></p><p id="portfolioAddError" class="portfolio-field-error" role="alert"></p><div class="portfolio-add-actions"><button type="submit" class="primary">הוספה לתיק</button><button type="button" class="text-button" data-fill-add>הקצאת היתרה</button></div></form>`,{allocationFund:f});find('#portfolioAddValue').focus({preventScroll:true});
  }
  function validateAllocation(){
   if(!pendingAllocation)return null;
