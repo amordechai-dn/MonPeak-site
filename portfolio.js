@@ -1,9 +1,9 @@
-import {bindInputUpdates} from './input-updates.js?v=1.25.1';
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.25.1';
-import {ratingMethod} from './portfolio-rating.js?v=1.25.1';
-import {portfolioVolatility,portfolioVolatilityGroup} from './portfolio-risk.js?v=1.25.1';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.25.1';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.25.1';
+import {bindInputUpdates} from './input-updates.js?v=1.25.2';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.25.2';
+import {ratingMethod} from './portfolio-rating.js?v=1.25.2';
+import {portfolioVolatility,portfolioVolatilityGroup} from './portfolio-risk.js?v=1.25.2';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.25.2';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.25.2';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -106,7 +106,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   return `<bdi class="portfolio-ticker">${f.id}</bdi>`;
  }
  function fundCompareChoice(f){
-  return `<label class="portfolio-compare-choice" title="בחירה להשוואה"><input type="checkbox" data-select-fund="${f.id}" aria-label="השוואת ${f.id}" ${fundSelection.includes(f.id)?'checked':''} ${fundSelection.length>=3&&!fundSelection.includes(f.id)?'disabled':''}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="7" height="14" rx="1.5"/><rect x="14" y="5" width="7" height="14" rx="1.5"/></svg></label>`;
+  return `<label class="portfolio-compare-choice" title="בחירה להשוואה"><input type="checkbox" data-select-fund="${f.id}" aria-label="השוואת ${f.id}" ${fundSelection.includes(f.id)?'checked':''} ${fundSelection.length>=3&&!fundSelection.includes(f.id)?'disabled':''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></svg></label>`;
  }
  function fundActions(f,added){
   return `<div class="portfolio-fund-action-row"><button type="button" class="primary" data-add-fund="${f.id}" ${added?'disabled':''} aria-label="${added?'כבר בתיק':'הוספת'} ${f.id}" title="${added?'כבר בתיק':'הוספה לתיק'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${added?'m5 12 4 4L19 6':'M12 5v14M5 12h14'}"/></svg></button><button type="button" class="text-button" data-fund-details="${f.id}" aria-label="פרטי ${f.id}" title="פרטים ומקור"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v.5"/></svg></button>${fundCompareChoice(f)}</div>`;
