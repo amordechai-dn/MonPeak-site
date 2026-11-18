@@ -1,5 +1,5 @@
-import {scorePortfolio} from './portfolio-rating.js?v=1.27.1';
-import {analyzePortfolio,normalizePortfolio,projectPortfolio} from './portfolio-model.js?v=1.27.1';
+import {scorePortfolio} from './portfolio-rating.js?v=1.27.2';
+import {analyzePortfolio,normalizePortfolio,projectPortfolio} from './portfolio-model.js?v=1.27.2';
 export const templates=[
  {id:'world-value',name:'עולמי, ערך וקריפטו · 65/30/5',description:'מדד שווקים מפותחים, קרן אקטיבית למניות קטנות עם הטיית ערך, וביטקוין.',rows:[['1185164',65],['AVGS',30],['IBIT',5]]},
  {id:'broad',name:'פיזור רחב',description:'ארה״ב, אירופה, שווקים מתעוררים, ישראל, אג״ח קצרות וביטקוין.',rows:[['1183441',40],['1159094',20],['1183490',10],['1146356',5],['1144591',20],['IBIT',5]]},
@@ -63,7 +63,7 @@ export function compareFundAdvantages(selected){
  const comparable=sameExposure&&!differences.length&&!sameFund;
  return {cost,fee,history,sameFund,sameExposure,differences,comparable,preferred:comparable&&cost.status==='ranked'?cost.best:[],dataComplete:cost.status!=='missing'};
 }
-export const comparisonPriorities={balanced:{label:'MMP',weights:{cost:1/3,diversification:1/3,simplicity:1/3}}};
+export const comparisonPriorities={balanced:{label:'MMP.',weights:{cost:1/3,diversification:1/3,simplicity:1/3}}};
 export function comparePortfolioAdvantages(left,right,catalog,priority='balanced'){
  const plans=[left,right],insights=plans.map(p=>portfolioInsights(p,catalog)),projections=plans.map(p=>projectPortfolio(p,catalog)),a=insights.map(i=>i.analysis),preference=comparisonPriorities[priority]||comparisonPriorities.balanced;
  const metric=(key,lower=false)=>{const scores=insights.map(i=>i.scores.find(s=>s.key===key)),values=scores.map(s=>s?.value??null);return scores.some(s=>s?.complete===false)?{status:'incomparable',best:[],values,coverage:scores.map(s=>s?.coverage??0)}:{...rankComparisonMetric(values,{lower,tolerance:.049999}),coverage:scores.map(s=>s?.coverage??0)};};

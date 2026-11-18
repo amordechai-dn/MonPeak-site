@@ -1,7 +1,7 @@
-import {exposureSnapshots} from './portfolio-exposures.js?v=1.27.1';
+import {exposureSnapshots} from './portfolio-exposures.js?v=1.27.2';
 
-// MMP policy, not an external rating or an investment suitability score.
-export const ratingVersion='MMP 1';
+// MMP. policy, not an external rating or an investment suitability score.
+export const ratingVersion='MMP. 1';
 export const ratingMethod=[
  {title:'עלות',text:'10 פחות 10 כפול העלות השנתית באחוזים, בטווח 0–10. לדוגמה: עלות של 0.2% נותנת 8. העלות כוללת הוצאות מוצר ידועות; עמלות מסחר ומס מוצגים בנפרד.'},
  {title:'פשטות',text:'60% מספר ההשקעות, 20% שוקי המסחר ו־20% מורכבות המוצרים.',rules:['מספר השקעות: עד 4 — 10; 5–6 — 9; 7–10 — 7; 11–15 — 5; יותר מ־15 — 3.','שוקי מסחר: אחד — 10; שניים — 8; שלושה — 6; ארבעה ומעלה — 4. כששוק המסחר אינו ידוע, הרישום נספר כשוק נוסף ומסומן כאומדן.','מוצר רגיל — 10; קרן חוזים עתידיים על נפט — 6; מינוף או שורט — 0. משקללים לפי ההקצאה. קרן ביטקוין רגילה וקרן סינתטית רגילה מקבלות 10 ברכיב הזה.']},
