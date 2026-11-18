@@ -1,5 +1,5 @@
-import {scorePortfolio} from './portfolio-rating.js?v=1.24.6';
-import {analyzePortfolio,normalizePortfolio,projectPortfolio} from './portfolio-model.js?v=1.24.6';
+import {scorePortfolio} from './portfolio-rating.js?v=1.25.0';
+import {analyzePortfolio,normalizePortfolio,projectPortfolio} from './portfolio-model.js?v=1.25.0';
 export const templates=[
  {id:'world-value',name:'עולמי, ערך וקריפטו · 65/30/5',description:'מדד שווקים מפותחים, קרן אקטיבית למניות קטנות עם הטיית ערך, וביטקוין.',rows:[['1185164',65],['AVGS',30],['IBIT',5]]},
  {id:'broad',name:'פיזור רחב',description:'ארה״ב, אירופה, שווקים מתעוררים, ישראל, אג״ח קצרות וביטקוין.',rows:[['1183441',40],['1159094',20],['1183490',10],['1146356',5],['1144591',20],['IBIT',5]]},
