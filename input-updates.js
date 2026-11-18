@@ -1,4 +1,4 @@
-// Keep native range interaction light; commit charts/storage after release.
+// Keep native range interaction light; commit expensive analysis/storage after release.
 export function bindInputUpdates(root,commit,{delay=120,changeRequestsCommit=false}={}){
  const controller=new AbortController(),options={signal:controller.signal};
  const view=root.ownerDocument.defaultView;
@@ -24,4 +24,14 @@ export function bindInputUpdates(root,commit,{delay=120,changeRequestsCommit=fal
  view.addEventListener('blur',()=>{dragging=null;flush();},options);
  view.addEventListener('pagehide',flush,options);
  return {schedule,flush,destroy(){if(destroyed)return;flush();destroyed=true;clear();controller.abort();}};
+}
+
+// Lightweight previews run at most once per display frame, independently of the
+// deferred expensive analysis/storage work, including while a pointer is down.
+export function bindFrameUpdates(root,render){
+ const view=root.ownerDocument.defaultView;let frame=null,disposed=false;
+ return {
+  schedule(){if(disposed||frame!==null)return;frame=view.requestAnimationFrame(()=>{frame=null;if(!disposed&&root.isConnected)render();});},
+  destroy(){disposed=true;if(frame!==null)view.cancelAnimationFrame(frame);frame=null;}
+ };
 }

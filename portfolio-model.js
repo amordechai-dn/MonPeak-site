@@ -87,3 +87,16 @@ export function projectPortfolio(state,catalog){
  const groups=a.groups.map(g=>{const all=active.filter(r=>r.category===g.key),members=all.filter(r=>r.assumedReturn!==0),weight=members.reduce((n,r)=>n+r.weight,0);return {...g,assumedReturn:weight>0&&all.every(r=>Number.isFinite(r.assumedReturn))?members.reduce((n,r)=>n+r.weight*r.assumedReturn,0)/weight:null};});
  return {rows,groups,gross:a.complete&&valid?contribution:null,valid,complete:a.complete,includedWeight,excludedWeight};
 }
+
+// Drawing shares may be normalized while editing an over-allocation. Labels keep
+// the entered portfolio weights; callers must disclose the drawing denominator.
+export function portfolioPieAllocation(state,catalog){
+ const a=analyzePortfolio(state,catalog);
+ if(!a.validBudget||a.invalid)return {valid:false,allocation:a.weight,over:a.over,funds:[],assets:[]};
+ const denominator=Math.max(100,a.weight),drawing=share=>share/denominator*100;
+ const holdings=a.rows.filter(r=>r.weight>0).sort((x,y)=>y.weight-x.weight);
+ const funds=holdings.map(r=>({key:'fund:'+r.id,id:r.id,label:r.fund?.name||r.id,share:r.weight,visualShare:drawing(r.weight)}));
+ const assets=a.groups.map(g=>({key:'asset:'+g.key,category:g.key,share:g.share*a.weight/100,visualShare:drawing(g.share*a.weight/100)}));
+ if(a.weight<100-1e-7){const rest={key:'unallocated',label:'טרם הוקצה',share:100-a.weight,visualShare:drawing(100-a.weight),color:'#dce2d5'};funds.push(rest);assets.push({...rest});}
+ return {valid:true,allocation:a.weight,over:a.over,funds,assets};
+}

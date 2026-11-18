@@ -1,9 +1,9 @@
-import {bindInputUpdates} from './input-updates.js?v=1.27.3';
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.27.3';
-import {ratingMethod} from './portfolio-rating.js?v=1.27.3';
-import {portfolioVolatility,portfolioVolatilityGroup,fundVolatility,fundVolatilityGroup} from './portfolio-risk.js?v=1.27.3';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.27.3';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.27.3';
+import {bindInputUpdates,bindFrameUpdates} from './input-updates.js?v=1.28.0';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.28.0';
+import {ratingMethod} from './portfolio-rating.js?v=1.28.0';
+import {portfolioVolatility,portfolioVolatilityGroup,fundVolatility,fundVolatilityGroup} from './portfolio-risk.js?v=1.28.0';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.28.0';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn,portfolioPieAllocation} from './portfolio-model.js?v=1.28.0';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -63,6 +63,8 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  find('#portfolioDialog').addEventListener('click',e=>{if(e.target!==e.currentTarget)return;const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog();});
 
  function update(){persist();updateRows();if(tab==='compare'){renderMobileBar(analyzePortfolio(state,funds));renderComparisonResults();}else renderSummary();}
+ const pieUpdates=bindFrameUpdates(root,renderBuilderPies);
+ let lastPieSignature=null;
  let currentDirty=false,comparisonDirty=false;
  const inputUpdates=bindInputUpdates(root,()=>{
   if(currentDirty)persist();if(comparisonDirty)persistComparison();
@@ -71,7 +73,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   if(tab==='compare'){renderMobileBar(analyzePortfolio(state,funds));renderComparisonResults();}else renderSummary();
  });
  function queueEdit(alternative=false){
-  if(alternative)comparisonDirty=true;else currentDirty=true;
+  if(alternative)comparisonDirty=true;else{currentDirty=true;if(tab==='builder')pieUpdates.schedule();}
   inputUpdates.schedule();
  }
  function previewRange(input){
@@ -235,23 +237,63 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   let hash=0;for(const letter of key)hash=(hash*31+letter.charCodeAt(0))>>>0;
   return chartColors[hash%chartColors.length];
  }
- function chartHTML(items,title){
+ function pieLegendHTML(item,i){return `<li data-pie-key="${esc(item.key||item.id||item.label)}"><button type="button" data-pie-index="${i}" data-pie-share="${item.share}" data-pie-label="${esc(item.id||item.label)}" aria-pressed="false" aria-label="${esc(item.id||item.label)}, ${number(item.share)} אחוז"><span class="portfolio-pie-key"><i style="background:${stableChartColor(item)}"></i><span>${item.id?`<bdi>${esc(item.id)}</bdi> `:''}<bdi dir="auto">${esc(item.label)}</bdi></span></span><bdi class="portfolio-pie-share">${number(item.share)}%</bdi></button></li>`;}
+ function chartHTML(items,title,{total=100,totalLabel='מהתיק'}={}){
   if(!items.length)return '';
   let offset=0;const chartId=++chartSerial;
-  return `<section class="portfolio-pie-panel" data-pie-panel><h3>${title}</h3><div class="portfolio-pie-content"><div class="portfolio-pie-visual"><svg class="portfolio-donut" viewBox="0 0 120 120" role="img" aria-label="${title}"><circle cx="60" cy="60" r="43" fill="none" stroke="#e8ecdf" stroke-width="16"/>${items.map((item,i)=>{const previous=offset;offset+=item.share;const gap=items.length===1?0:Math.min(.65,item.share*.16);return `<circle class="portfolio-pie-segment" data-pie-index="${i}" data-pie-share="${item.share}" data-pie-label="${esc(item.id||item.label)}" cx="60" cy="60" r="43" pathLength="100" fill="none" stroke="${stableChartColor(item)}" stroke-width="16" stroke-dasharray="${Math.max(.01,item.share-gap)} ${100-Math.max(.01,item.share-gap)}" stroke-dashoffset="${-(previous+gap/2)}" transform="rotate(-90 60 60)"><title>${esc(item.id||item.label)}: ${number(item.share)}%</title></circle>`;}).join('')}<text class="portfolio-pie-center-value" x="60" y="58" text-anchor="middle" aria-hidden="true">100%</text><text class="portfolio-pie-center-label" x="60" y="75" text-anchor="middle" aria-hidden="true">מהתיק</text></svg></div><ul class="portfolio-pie-legend" aria-label="${title}">${items.map((item,i)=>`<li><button type="button" data-pie-index="${i}" data-pie-share="${item.share}" data-pie-label="${esc(item.id||item.label)}" aria-pressed="false" aria-label="${esc(item.id||item.label)}, ${number(item.share)} אחוז"><span class="portfolio-pie-key"><i style="background:${stableChartColor(item)}"></i><span>${item.id?`<bdi>${esc(item.id)}</bdi> `:''}<bdi dir="auto">${esc(item.label)}</bdi></span></span><bdi class="portfolio-pie-share">${number(item.share)}%</bdi></button></li>`).join('')}</ul></div><p class="portfolio-pie-readout" id="pie-readout-${chartId}" aria-live="polite"></p></section>`;
+  return `<section class="portfolio-pie-panel" data-pie-panel data-pie-total="${total}" data-pie-total-label="${esc(totalLabel)}"><h3>${title}</h3><div class="portfolio-pie-content"><div class="portfolio-pie-visual"><svg class="portfolio-donut" viewBox="0 0 120 120" role="img" aria-label="${title}"><circle cx="60" cy="60" r="43" fill="none" stroke="#e8ecdf" stroke-width="16"/>${items.map((item,i)=>{const previous=offset,share=item.visualShare??item.share;offset+=share;const gap=items.length===1?0:Math.min(.65,share*.16);return `<circle class="portfolio-pie-segment" data-pie-key="${esc(item.key||item.id||item.label)}" data-pie-index="${i}" data-pie-share="${item.share}" data-pie-label="${esc(item.id||item.label)}" cx="60" cy="60" r="43" pathLength="100" fill="none" stroke="${stableChartColor(item)}" stroke-width="16" stroke-dasharray="${Math.max(0,share-gap)} ${100-Math.max(0,share-gap)}" stroke-dashoffset="${-(previous+gap/2)}" transform="rotate(-90 60 60)"><title>${esc(item.id||item.label)}: ${number(item.share)}%</title></circle>`;}).join('')}<text class="portfolio-pie-center-value" x="60" y="58" text-anchor="middle" aria-hidden="true">${number(total)}%</text><text class="portfolio-pie-center-label" x="60" y="75" text-anchor="middle" aria-hidden="true">${esc(totalLabel)}</text></svg></div><ul class="portfolio-pie-legend" aria-label="${title}">${items.map((item,i)=>pieLegendHTML(item,i)).join('')}</ul></div><p class="portfolio-pie-readout" id="pie-readout-${chartId}" aria-live="polite"></p></section>`;
  }
  function activatePie(panel,index){
   const segment=panel.querySelector(`.portfolio-pie-segment[data-pie-index="${index}"]`),active=!!segment;
   panel.classList.toggle('has-pie-selection',active);panel.dataset.pieActive=active?index:'';
   panel.querySelectorAll('[data-pie-index]').forEach(piece=>{const selected=active&&piece.dataset.pieIndex===String(index);piece.classList.toggle('is-active',selected);if(piece.tagName==='BUTTON')piece.setAttribute('aria-pressed',String(selected));});
-  panel.querySelector('.portfolio-pie-center-value').textContent=active?number(Number(segment.dataset.pieShare),1)+'%':'100%';
-  const label=active?segment.dataset.pieLabel:'מהתיק';panel.querySelector('.portfolio-pie-center-label').textContent=label.length>14?label.slice(0,13)+'…':label;
+  panel.querySelector('.portfolio-pie-center-value').textContent=active?number(Number(segment.dataset.pieShare),1)+'%':number(Number(panel.dataset.pieTotal??100))+'%';
+  const label=active?segment.dataset.pieLabel:(panel.dataset.pieTotalLabel||'מהתיק');panel.querySelector('.portfolio-pie-center-label').textContent=label.length>14?label.slice(0,13)+'…':label;
   panel.querySelector('.portfolio-pie-readout').textContent=active?`${segment.dataset.pieLabel} · ${number(Number(segment.dataset.pieShare),2)}% מהתיק`:'';
  }
  root.addEventListener('pointerover',event=>{if(event.pointerType==='touch')return;const piece=event.target.closest('[data-pie-index]');if(piece)activatePie(piece.closest('[data-pie-panel]'),piece.dataset.pieIndex);});
  root.addEventListener('pointerout',event=>{const panel=event.target.closest('[data-pie-panel]');if(panel&&!panel.contains(event.relatedTarget))activatePie(panel,panel.dataset.piePinned==='true'?panel.dataset.piePinnedIndex:null);});
  root.addEventListener('focusin',event=>{const piece=event.target.closest('button[data-pie-index]');if(piece)activatePie(piece.closest('[data-pie-panel]'),piece.dataset.pieIndex);});
  root.addEventListener('focusout',event=>{const panel=event.target.closest('[data-pie-panel]');if(panel&&!panel.contains(event.relatedTarget))activatePie(panel,panel.dataset.piePinned==='true'?panel.dataset.piePinnedIndex:null);});
+ function syncBuilderPie(panel,items,allocation){
+  const svg=panel.querySelector('svg'),legend=panel.querySelector('.portfolio-pie-legend');
+  const activeKey=panel.querySelector('.portfolio-pie-segment.is-active')?.dataset.pieKey;
+  const circles=new Map([...svg.querySelectorAll('.portfolio-pie-segment')].map(e=>[e.dataset.pieKey,e]));
+  const entries=new Map([...legend.children].map(e=>[e.dataset.pieKey,e]));
+  let offset=0;
+  items.forEach((item,i)=>{
+   const key=item.key,share=item.visualShare??item.share,gap=items.length===1?0:Math.min(.65,share*.16),length=Math.max(0,share-gap);
+   let circle=circles.get(key),entry=entries.get(key);
+   if(!circle){circle=document.createElementNS('http://www.w3.org/2000/svg','circle');for(const [name,value] of Object.entries({class:'portfolio-pie-segment',cx:60,cy:60,r:43,pathLength:100,fill:'none','stroke-width':16,transform:'rotate(-90 60 60)'}))circle.setAttribute(name,value);circle.append(document.createElementNS('http://www.w3.org/2000/svg','title'));}
+   circle.dataset.pieKey=key;circle.dataset.pieIndex=i;circle.dataset.pieShare=item.share;circle.dataset.pieLabel=item.id||item.label;
+   circle.setAttribute('stroke',stableChartColor(item));circle.setAttribute('stroke-dasharray',`${length} ${100-length}`);circle.setAttribute('stroke-dashoffset',-(offset+gap/2));
+   circle.querySelector('title').textContent=`${item.id||item.label}: ${number(item.share)}%`;offset+=share;
+   if(svg.querySelectorAll('.portfolio-pie-segment')[i]!==circle)svg.insertBefore(circle,svg.querySelectorAll('.portfolio-pie-segment')[i]||svg.querySelector('text'));
+   if(!entry){const template=document.createElement('template');template.innerHTML=pieLegendHTML(item,i);entry=template.content.firstElementChild;}
+   const button=entry.querySelector('button');button.dataset.pieIndex=i;button.dataset.pieShare=item.share;button.dataset.pieLabel=item.id||item.label;
+   button.setAttribute('aria-label',`${item.id||item.label}, ${number(item.share)} אחוז`);entry.querySelector('.portfolio-pie-share').textContent=number(item.share)+'%';
+   if(legend.children[i]!==entry)legend.insertBefore(entry,legend.children[i]||null);
+   circles.delete(key);entries.delete(key);
+  });
+  circles.forEach(e=>e.remove());entries.forEach(e=>e.remove());
+  panel.dataset.pieTotal=allocation;panel.dataset.pieTotalLabel=Math.abs(allocation-100)<1e-7?'מהתיק':'הוקצו';
+  const index=items.findIndex(item=>item.key===activeKey);
+  if(panel.dataset.piePinned==='true'){panel.dataset.piePinnedIndex=index;if(index<0)panel.dataset.piePinned='false';}
+  activatePie(panel,index>=0?index:null);
+ }
+ function renderBuilderPies(){
+  const aside=find('#portfolioBuilderCharts');if(tab!=='builder'||!aside)return;
+  const signature=JSON.stringify([state.mode,state.budget,state.rows.map(r=>[r.id,r.value])]);
+  if(signature===lastPieSignature)return;lastPieSignature=signature;
+  const allocation=portfolioPieAllocation(state,funds),status=aside.querySelector('.portfolio-pie-status'),host=aside.querySelector('.portfolio-pies');
+  aside.classList.toggle('has-invalid-weights',!allocation.valid);
+  status.textContent=!allocation.valid?'יש להשלים משקל תקין; מוצגת החלוקה האחרונה':allocation.over?'חריגה מ־100% · הגרפים מציגים חלוקה יחסית להקצאה':'';
+  if(!allocation.valid)return;
+  const assets=allocation.assets.map(item=>item.category?{...item,label:categories[item.category]?.name||'מידע חסר',color:categories[item.category]?.color}:item);
+  const data=[allocation.funds,assets],titles=['חלוקה לפי קרנות','חלוקה לפי סוג נכס'];
+  if(host.children.length!==2)host.innerHTML=data.map((items,i)=>chartHTML(items,titles[i],{total:allocation.allocation,totalLabel:Math.abs(allocation.allocation-100)<1e-7?'מהתיק':'הוקצו'})).join('');
+  else [...host.children].forEach((panel,i)=>syncBuilderPie(panel,data[i],allocation.allocation));
+ }
  function chartsHTML(data,kind=null,title=null){
   const a=analyzePortfolio(data,funds),active=a.rows.filter(r=>r.weight>0).sort((x,y)=>y.weight-x.weight);
   if(a.invalid||a.over||!active.length)return '';
@@ -318,8 +360,8 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   return `<p class="portfolio-holding-facts" aria-label="מאפייני הקרן">${facts.map(([label,value])=>`<span><span class="sr-only">${label}: </span>${value}</span>`).join('')}</p>`;
  }
  function renderBuilder(){
-  find('#portfolioView').innerHTML=`<div class="portfolio-editor-head"><label class="field portfolio-name-field">שם התיק<input id="portfolioName" type="text" maxlength="60" value="${esc(state.name)}" autocomplete="off"></label></div><div class="portfolio-holdings-heading"><h2>הקרנות בתיק</h2><div class="portfolio-holding-tools" role="group" aria-label="פעולות בתיק"><button type="button" class="text-button" data-open-library>＋ הוספת קרן</button><button type="button" class="text-button" data-reset-returns aria-label="שחזור תשואות היסטוריות"><span class="portfolio-action-full">שחזור תשואות היסטוריות</span><span class="portfolio-action-short" aria-hidden="true">שחזור תשואות</span></button>${state.rows.length>1?'<button type="button" class="text-button" data-equalize>חלוקה שווה</button>':''}</div></div><div class="portfolio-holdings">${state.rows.length?state.rows.map((row,i)=>`<article class="portfolio-holding" data-holding="${esc(row.id)}"><div class="portfolio-holding-title"><button type="button" class="portfolio-holding-link" data-fund-details="${esc(row.id)}"><bdi class="portfolio-holding-symbol">${esc(row.id)}</bdi><span class="portfolio-holding-separator" aria-hidden="true">–</span><span class="portfolio-holding-name" dir="auto">${esc(funds.find(f=>f.id===row.id)?.name||'מידע חסר')}</span></button><button type="button" class="portfolio-remove" data-remove-fund="${esc(row.id)}" aria-label="הסרת ${esc(row.id)}">✕</button></div>${holdingFacts(row.id)}<div class="portfolio-holding-values"><label class="field portfolio-weight-field"><span class="portfolio-value-heading">משקל בתיק</span><span class="input-wrap"><input id="portfolio-row-${i}" type="text" inputmode="decimal" dir="ltr" data-row-value="${esc(row.id)}" value="${esc(row.value)}" aria-label="משקל ${esc(row.id)} בתיק"><span class="unit">%</span></span><input type="range" class="value-slider portfolio-allocation-slider" data-row-slider="${esc(row.id)}" min="0" max="100" step=".5" value="${Number(row.value)||0}" aria-label="גרירת הקצאת ${esc(row.id)}"></label>${returnInput(row)}<button type="button" class="portfolio-fill" data-fill-fund="${esc(row.id)}" aria-label="השלמת יתרה ל־${esc(row.id)}">השלמה</button></div><p class="portfolio-row-error" data-row-error="${esc(row.id)}" hidden>הזינו אחוז בין 0 ל־100.</p></article>`).join(''):'<div class="portfolio-empty"><h3>בחרו את הקרנות שירכיבו את התיק</h3><button type="button" class="primary" data-open-library>לבחירת קרנות</button></div>'}</div>${previousState?'<button type="button" class="text-button" data-undo-template>ביטול החלפת התיק</button>':''}`;
-  updateRows();
+  find('#portfolioView').innerHTML=`<div class="portfolio-editor-head"><label class="field portfolio-name-field">שם התיק<input id="portfolioName" type="text" maxlength="60" value="${esc(state.name)}" autocomplete="off"></label></div><div class="portfolio-holdings-heading"><h2>הקרנות בתיק</h2><div class="portfolio-holding-tools" role="group" aria-label="פעולות בתיק"><button type="button" class="text-button" data-open-library>＋ הוספת קרן</button><button type="button" class="text-button" data-reset-returns aria-label="שחזור תשואות היסטוריות"><span class="portfolio-action-full">שחזור תשואות היסטוריות</span><span class="portfolio-action-short" aria-hidden="true">שחזור תשואות</span></button>${state.rows.length>1?'<button type="button" class="text-button" data-equalize>חלוקה שווה</button>':''}</div></div><div class="portfolio-builder-workspace"><div class="portfolio-holdings">${state.rows.length?state.rows.map((row,i)=>`<article class="portfolio-holding" data-holding="${esc(row.id)}"><div class="portfolio-holding-title"><button type="button" class="portfolio-holding-link" data-fund-details="${esc(row.id)}"><bdi class="portfolio-holding-symbol">${esc(row.id)}</bdi><span class="portfolio-holding-separator" aria-hidden="true">–</span><span class="portfolio-holding-name" dir="auto">${esc(funds.find(f=>f.id===row.id)?.name||'מידע חסר')}</span></button><button type="button" class="portfolio-remove" data-remove-fund="${esc(row.id)}" aria-label="הסרת ${esc(row.id)}">✕</button></div>${holdingFacts(row.id)}<div class="portfolio-holding-values"><label class="field portfolio-weight-field"><span class="portfolio-value-heading">משקל בתיק</span><span class="input-wrap"><input id="portfolio-row-${i}" type="text" inputmode="decimal" dir="ltr" data-row-value="${esc(row.id)}" value="${esc(row.value)}" aria-label="משקל ${esc(row.id)} בתיק"><span class="unit">%</span></span><input type="range" class="value-slider portfolio-allocation-slider" data-row-slider="${esc(row.id)}" min="0" max="100" step=".5" value="${Number(row.value)||0}" aria-label="גרירת הקצאת ${esc(row.id)}"></label>${returnInput(row)}<button type="button" class="portfolio-fill" data-fill-fund="${esc(row.id)}" aria-label="השלמת יתרה ל־${esc(row.id)}">השלמה</button></div><p class="portfolio-row-error" data-row-error="${esc(row.id)}" hidden>הזינו אחוז בין 0 ל־100.</p></article>`).join(''):'<div class="portfolio-empty"><h3>בחרו את הקרנות שירכיבו את התיק</h3><button type="button" class="primary" data-open-library>לבחירת קרנות</button></div>'}</div><aside id="portfolioBuilderCharts" class="portfolio-builder-charts" aria-label="חלוקת התיק בזמן אמת"><div class="portfolio-pies"></div><p id="portfolioPieStatus" class="portfolio-pie-status" role="status"></p></aside></div>${previousState?'<button type="button" class="text-button" data-undo-template>ביטול החלפת התיק</button>':''}`;
+  lastPieSignature=null;renderBuilderPies();updateRows();
  }
  function updateRows(){
   if(tab!=='builder'&&tab!=='compare')return;
@@ -342,8 +384,8 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  }
  function renderSummary(){
   const a=analyzePortfolio(state,funds),projection=projectPortfolio(state,funds),risk=portfolioVolatility(state,funds),invalid=a.invalid||!a.validBudget;
-  renderMobileBar(a);
-  find('#portfolioSummary').innerHTML=`<div class="portfolio-summary-heading"><h2>סיכום התיק</h2>${info('allocation','חלוקת התיק')}</div><div class="portfolio-summary-kpis"><div><span>הקצאה</span><strong class="${invalid||a.over?'target-missed':a.complete?'target-met':''}">${invalid?'שגיאה':pct(a.weight)}</strong><small>${a.over?'חריגה '+pct(a.weight-100):'נותרו '+pct(Math.max(0,100-a.weight))}</small></div><div><span>עלות שנתית ${info('fee','עלות שנתית משוקללת')}</span><strong>${pct(a.weightedFee)}</strong>${a.weightedFee===null&&a.allocated>0?'<small>חסרים נתוני עלות</small>':!a.complete&&a.allocated>0?'<small>בחלק שהוקצה</small>':''}</div><div><span>תשואה שנתית משוערת ${info('returns','הנחות התשואה')}</span><strong>${returnPct(projection.gross)}</strong><small>${!a.complete?'נדרשת הקצאה של 100%':!projection.valid?(projection.excludedWeight>0&&projection.includedWeight===0?'כל הנכסים הוגדרו 0%':'יש להשלים הנחות תשואה'):`מבוסס על ${number(projection.includedWeight)}% מהתיק`}</small></div>${volatilityKpi('current',risk)}${projection.groups.length?`<div class="portfolio-group-returns"><h3>תשואה משוערת לפי סוג נכס ${info('returns','הנחות התשואה')}</h3>${projection.groups.map(g=>`<div><span>${categories[g.key]?.name||'מידע חסר'}</span><strong>${returnPct(g.assumedReturn)}</strong></div>`).join('')}</div>`:''}</div>${a.rows.some(r=>r.amount>0&&r.fund?.fee===null&&Number.isFinite(r.fund?.reportedFee))?`<label class="portfolio-estimate-toggle"><input type="checkbox" data-include-reported ${state.includeReported?'checked':''}>שימוש בעלויות לא מאומתות כאומדן</label>`:''}${a.rows.some(r=>r.amount>0&&r.fund?.feeStatus==='reference')?`<p class="portfolio-fee-note">${referenceCostNote}</p>`:''}${a.estimatedAmount>0?'<p class="portfolio-fee-note">העלות כוללת אומדנים לא מאומתים.</p>':''}${chartsHTML(state)}<div class="portfolio-scores-title"><h3 class="portfolio-scores-heading">ציוני התיק</h3><button type="button" class="portfolio-score-source" data-scoring-method>שיטת MMP.</button></div>${scoreHTML(state)}${insightsHTML(state)}<div class="portfolio-summary-actions"><button type="button" class="primary" data-save-portfolio ${!state.rows.length||invalid||a.over?'disabled':''}>שמירת תיק</button>${state.rows.length?'<button type="button" class="text-button" data-export-portfolio>הורדת CSV</button>':''}</div>`;
+  renderMobileBar(a);renderBuilderPies();
+  find('#portfolioSummary').innerHTML=`<div class="portfolio-summary-heading"><h2>סיכום התיק</h2>${info('allocation','חלוקת התיק')}</div><div class="portfolio-summary-kpis"><div><span>הקצאה</span><strong class="${invalid||a.over?'target-missed':a.complete?'target-met':''}">${invalid?'שגיאה':pct(a.weight)}</strong><small>${a.over?'חריגה '+pct(a.weight-100):'נותרו '+pct(Math.max(0,100-a.weight))}</small></div><div><span>עלות שנתית ${info('fee','עלות שנתית משוקללת')}</span><strong>${pct(a.weightedFee)}</strong>${a.weightedFee===null&&a.allocated>0?'<small>חסרים נתוני עלות</small>':!a.complete&&a.allocated>0?'<small>בחלק שהוקצה</small>':''}</div><div><span>תשואה שנתית משוערת ${info('returns','הנחות התשואה')}</span><strong>${returnPct(projection.gross)}</strong><small>${!a.complete?'נדרשת הקצאה של 100%':!projection.valid?(projection.excludedWeight>0&&projection.includedWeight===0?'כל הנכסים הוגדרו 0%':'יש להשלים הנחות תשואה'):`מבוסס על ${number(projection.includedWeight)}% מהתיק`}</small></div>${volatilityKpi('current',risk)}${projection.groups.length?`<div class="portfolio-group-returns"><h3>תשואה משוערת לפי סוג נכס ${info('returns','הנחות התשואה')}</h3>${projection.groups.map(g=>`<div><span>${categories[g.key]?.name||'מידע חסר'}</span><strong>${returnPct(g.assumedReturn)}</strong></div>`).join('')}</div>`:''}</div>${a.rows.some(r=>r.amount>0&&r.fund?.fee===null&&Number.isFinite(r.fund?.reportedFee))?`<label class="portfolio-estimate-toggle"><input type="checkbox" data-include-reported ${state.includeReported?'checked':''}>שימוש בעלויות לא מאומתות כאומדן</label>`:''}${a.rows.some(r=>r.amount>0&&r.fund?.feeStatus==='reference')?`<p class="portfolio-fee-note">${referenceCostNote}</p>`:''}${a.estimatedAmount>0?'<p class="portfolio-fee-note">העלות כוללת אומדנים לא מאומתים.</p>':''}<div class="portfolio-scores-title"><h3 class="portfolio-scores-heading">ציוני התיק</h3><button type="button" class="portfolio-score-source" data-scoring-method>שיטת MMP.</button></div>${scoreHTML(state)}${insightsHTML(state)}<div class="portfolio-summary-actions"><button type="button" class="primary" data-save-portfolio ${!state.rows.length||invalid||a.over?'disabled':''}>שמירת תיק</button>${state.rows.length?'<button type="button" class="text-button" data-export-portfolio>הורדת CSV</button>':''}</div>`;
  }
  function fundSummary(f){
   const description=f.description||'';
@@ -478,5 +520,5 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
   if(button.hasAttribute('data-show-summary')){if(tab!=='builder')setTab('builder');find('#portfolioSummary').focus({preventScroll:true});find('#portfolioSummary').scrollIntoView({behavior:motion()?'instant':'smooth',block:'start'});}
  });
  persist();renderView();
- return {destroy:()=>inputUpdates.destroy(),compareWith:data=>{comparison=percentagePortfolio(data);persistComparison();setTab('compare',{focus:true});}};
+ return {destroy:()=>{pieUpdates.destroy();inputUpdates.destroy();},compareWith:data=>{comparison=percentagePortfolio(data);persistComparison();setTab('compare',{focus:true});}};
 }

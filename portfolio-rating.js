@@ -1,4 +1,4 @@
-import {exposureSnapshots} from './portfolio-exposures.js?v=1.27.3';
+import {exposureSnapshots} from './portfolio-exposures.js?v=1.28.0';
 
 // MMP. policy, not an external rating or an investment suitability score.
 export const ratingVersion='MMP. 1';
