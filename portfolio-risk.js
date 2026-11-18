@@ -1,5 +1,5 @@
-import {analyzePortfolio} from './portfolio-model.js?v=1.25.2';
-import {riskSnapshot} from './portfolio-risk-data.js?v=1.25.2';
+import {analyzePortfolio} from './portfolio-model.js?v=1.26.0';
+import {riskSnapshot} from './portfolio-risk-data.js?v=1.26.0';
 
 const monthNumber=month=>/^\d{4}-(0[1-9]|1[0-2])$/.test(month)?Number(month.slice(0,4))*12+Number(month.slice(5))-1:NaN;
 const previousMonth=month=>{const n=monthNumber(month)-1;return `${Math.floor(n/12)}-${String(n%12+1).padStart(2,'0')}`;};
@@ -50,7 +50,7 @@ function finish(prepared,months,snapshot){
  // Fixed weights every month imply monthly rebalancing. Combining synchronized
  // returns first incorporates covariance, including negatively correlated assets.
  const returns=months.map(month=>prepared.assets.reduce((sum,a)=>sum+a.weight*a.returns.get(month),0));
- return {valid:true,annualized:annualizedStandardDeviation(returns),currency:'ILS',months:months.length,start:previousMonth(months[0]),end:months.at(-1),returns,monthKeys:months,shortHistory:months.length<snapshot.lookbackMonths,lagMonths:monthNumber(snapshot.lastMonth)-monthNumber(months.at(-1)),estimated:true,sources:prepared.assets.map(({returns,...asset})=>asset),asOf:snapshot.asOf};
+ return {valid:true,annualized:annualizedStandardDeviation(returns),currency:'ILS',months:months.length,start:previousMonth(months[0]),end:months.at(-1),returns,monthKeys:months,shortHistory:months.length<snapshot.lookbackMonths,lagMonths:monthNumber(snapshot.lastMonth)-monthNumber(months.at(-1)),estimated:true,sources:prepared.assets.map(({returns,...asset})=>({...asset,annualized:annualizedStandardDeviation(months.map(month=>returns.get(month))),months:months.length})),asOf:snapshot.asOf};
 }
 export function portfolioVolatility(state,catalog,{snapshot=riskSnapshot}={}){
  const prepared=prepare(state,catalog,snapshot);
@@ -65,3 +65,8 @@ export function portfolioVolatilityGroup(states,catalog,{snapshot=riskSnapshot}=
  const results=prepared.map(p=>finish(p,p.valid?(months.length>=snapshot.minimumMonths?months:commonWindow([p],snapshot)):[],snapshot));
  return {results,comparable,months:comparable?months.length:0,currency:'ILS'};
 }
+
+// The same calculation at 100% allocation gives each fund/proxy's own risk.
+const singleFund=id=>({budget:100,mode:'percent',rows:[{id,value:100}]});
+export function fundVolatility(id,catalog,options){return portfolioVolatility(singleFund(id),catalog,options);}
+export function fundVolatilityGroup(ids,catalog,options){return portfolioVolatilityGroup(ids.map(singleFund),catalog,options);}

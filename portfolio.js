@@ -1,9 +1,9 @@
-import {bindInputUpdates} from './input-updates.js?v=1.25.2';
-import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.25.2';
-import {ratingMethod} from './portfolio-rating.js?v=1.25.2';
-import {portfolioVolatility,portfolioVolatilityGroup} from './portfolio-risk.js?v=1.25.2';
-import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.25.2';
-import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.25.2';
+import {bindInputUpdates} from './input-updates.js?v=1.26.0';
+import {templates,portfolioFromTemplate,portfolioInsights,comparePortfolios,portfolioFindings,compareFundAdvantages,comparePortfolioAdvantages,rankComparisonMetric} from './portfolio-insights.js?v=1.26.0';
+import {ratingMethod} from './portfolio-rating.js?v=1.26.0';
+import {portfolioVolatility,portfolioVolatilityGroup,fundVolatility,fundVolatilityGroup} from './portfolio-risk.js?v=1.26.0';
+import {funds,categories,catalogVersion,fundGroups} from './fund-catalog.js?v=1.26.0';
+import {normalizePortfolio,analyzePortfolio,equalizePortfolio,filterFunds,parsePortfolioNumber,allocatePortfolioFund,percentagePortfolio,projectPortfolio,holdingAnnualReturn,parseAnnualReturn} from './portfolio-model.js?v=1.26.0';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=(n,digits=2)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:digits}).format(n);
@@ -31,6 +31,8 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  try{const stored=JSON.parse(localStorage.getItem('monpeak-portfolio-comparison')||'null');if(stored)comparison=percentagePortfolio(stored);}catch{}
  const persistComparison=()=>{try{localStorage.setItem('monpeak-portfolio-comparison',JSON.stringify(comparison));}catch{notify('לא ניתן לשמור את ההשוואה במכשיר.');}};
  const find=s=>root.querySelector(s),all=s=>[...root.querySelectorAll(s)];
+ const fundRiskCache=new Map();
+ const riskForFund=id=>{if(!fundRiskCache.has(id))fundRiskCache.set(id,fundVolatility(id,funds));return fundRiskCache.get(id);};
  const motion=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
  const persist=()=>{onChange(JSON.parse(JSON.stringify(state)));try{localStorage.setItem('monpeak-portfolio-draft',JSON.stringify(state));}catch{if(!storageWarned){notify('השמירה במכשיר אינה זמינה בדפדפן הזה. אפשר להוריד CSV.');storageWarned=true;}}};
  root.innerHTML=`<div class="portfolio-layout">
@@ -140,6 +142,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  function featureLabel(label,selected,key){return `${label}<small class="comparison-feature-note">${new Set(selected.map(f=>f[key])).size===1?'זהה':'תלוי בהעדפה'}</small>`;}
  function openFundComparison(){
   const selected=fundSelection.map(id=>funds.find(f=>f.id===id)).filter(Boolean);if(selected.length<2)return;
+  const riskGroup=fundVolatilityGroup(selected.map(f=>f.id),funds),riskMetric=riskGroup.comparable?rankComparisonMetric(riskGroup.results.map(r=>Number(r.annualized.toFixed(2))),{lower:true}):{status:'incomparable',values:riskGroup.results.map(r=>r.annualized),best:[]};
   const result=compareFundAdvantages(selected),names=indices=>indices.map(i=>selected[i].id).join(' / '),cheapest=result.cost.status==='ranked'?names(result.cost.best):null;
   let title,reason;
   if(result.sameFund){title='אותה קרן ברישומים שונים';reason='הבדלי סימול ומטבע מסחר אינם מוסיפים פיזור. הבחירה תלויה גם בבורסה ובעמלות ההמרה והמסחר שלך.';}
@@ -154,6 +157,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
    ['עלות שנתית ידועה',selected.map((f,i)=>`<td>${advantageCell(result.cost,i,annualFundCost(f)===null?'לא אומתה':pct(annualFundCost(f)),{win:'עלות נמוכה',other:'עלות גבוהה יותר'})}</td>`).join('')],
    ['דמי ניהול',selected.map((f,i)=>`<td>${advantageCell(result.fee,i,pct(f.fee),{win:'דמי ניהול נמוכים',other:'דמי ניהול גבוהים יותר'})}</td>`).join('')],
    ['תשואה שנתית בעבר',selected.map((f,i)=>`<td>${advantageCell(result.history,i,returnPct(f.history?.rate),{win:'גבוהה יותר בעבר',other:'נמוכה יותר בעבר',historical:true})}<small class="comparison-period"><bdi>${reviewDate(f.history?.start)} – ${reviewDate(f.history?.end)}</bdi> · ${esc(f.history?.currency||'')}</small></td>`).join('')],
+   ['סטיית תקן שנתית',selected.map((f,i)=>{const r=riskGroup.results[i];return `<td>${advantageCell(riskMetric,i,r.valid?riskPct(r.annualized):'—',{win:'פחות תנודתית',other:'יותר תנודתית',historical:true})}<small class="comparison-period">${volatilityPeriod(r)}</small>${volatilityButton('fundcompare-'+f.id)}</td>`;}).join('')],
    ...[['מדינה','domicile'],['מטבע מסחר','currency'],['חלוקת דיבידנדים','distribution'],['שיטת עקיבה','replication'],['גידור','hedging']].map(([label,key])=>[featureLabel(label,selected,key),featureCells(selected,key)]),
    ['זהות הקרן',selected.map(f=>`<td><bdi>${esc(f.fundKey)}</bdi></td>`).join('')],
    ['מקור',selected.map(f=>`<td><a href="${esc(feeSourceURL(f))}" target="_blank" rel="noopener noreferrer">${feeSourceLabel(f)} ↗</a></td>`).join('')]
@@ -194,13 +198,15 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  function volatilityPeriod(r){return r.valid?`${volatilityDuration(r.months)} · עד <bdi>${r.end.split('-').reverse().join('.')}</bdi> · בשקלים${r.shortHistory?' · תקופה קצרה':''}`:esc(volatilityReason(r));}
  function volatilityKpi(scope,r){return `<div class="portfolio-risk-kpi"><span>סטיית תקן שנתית ${volatilityButton(scope)}</span><strong>${r.valid?riskPct(r.annualized):'—'}</strong><small>${volatilityPeriod(r)}</small></div>`;}
  function volatilityHelp(scope){
-  let r;
-  if(scope.startsWith('compare-')&&comparison)r=portfolioVolatilityGroup([state,comparison],funds).results[Number(scope.slice(-1))];
+  let r;const fundId=scope.startsWith('fundcompare-')?scope.slice(12):scope.startsWith('fund-')?scope.slice(5):null,isFund=Boolean(fundId);
+  if(scope.startsWith('fundcompare-')){const group=fundVolatilityGroup(fundSelection,funds);r=group.results[fundSelection.indexOf(fundId)];}
+  else if(isFund)r=riskForFund(fundId);
+  else if(scope.startsWith('compare-')&&comparison)r=portfolioVolatilityGroup([state,comparison],funds).results[Number(scope.slice(-1))];
   else if(scope.startsWith('example-')){const t=templates.find(t=>t.id===scope.slice(8));if(t)r=portfolioVolatility(percentagePortfolio(portfolioFromTemplate(t)),funds);}
   else r=portfolioVolatility(state,funds);
   if(!r)return;
   const sources=[...new Map((r.sources||[]).map(s=>[s.series,s])).values()];
-  showDialog('סטיית תקן שנתית',`<p>מדד לתנודתיות ההיסטורית של התיק סביב התשואה הממוצעת שלו. מספר גבוה יותר מצביע על תנודות חדות יותר — בעליות וגם בירידות.</p>${r.valid?`<dl class="portfolio-detail-list"><div><dt>סטיית התקן השנתית</dt><dd><bdi>${riskPct(r.annualized)}</bdi></dd></div><div><dt>תקופת המדידה</dt><dd><bdi>${r.start} – ${r.end}</bdi></dd></div><div><dt>תצפיות חודשיות</dt><dd>${r.months}</dd></div><div><dt>מטבע החישוב</dt><dd>שקלים</dd></div></dl>${r.shortHistory?'<p>החישוב כאן מבוסס על פחות מ־15 שנות היסטוריה. תאריכי התקופה ומספר החודשים מופיעים למעלה.</p>':''}${r.lagMonths?'<p>תאריך הסיום מוקדם מהחודש האחרון במאגר, בגלל חוסר בנתוני סוף חודש. לא הושלמו מחירים משוערים.</p>':''}`:`<p>${esc(volatilityReason(r))}. אין מציגים נתון חסר כ־0%.</p>`}<p>זה אינו שיעור התשואה הצפוי ואינו גבול להפסד אפשרי.</p><details class="portfolio-risk-method"><summary>איך חישבנו?</summary><p>מחשבים את תשואת כל נכס בכל חודש, מחברים לפי משקלי התיק, ואז מחשבים סטיית תקן מדגמית ומכפילים בשורש 12. כך החישוב כולל את הקשרים בין הנכסים. מניחים איזון חודשי למשקלים שהזנת, ללא הפקדות ומשיכות.</p><p>משתמשים בעד 15 שנים (180 חודשים רציפים), ולפחות 12 חודשים. התקופה מוגבלת להיסטוריה המשותפת של הנכסים בתיק. בהשוואה ישירה נדרשת אותה תקופה לשני התיקים. שינוי התשואה המשוערת או הגדרתה כ־0% אינו מוציא את הנכס מחישוב התנודתיות.</p><p>הנתונים הומרו לשקלים ממחירים מתואמים כשזמינים, או ממחירי נכס/מדד מייצג. הוצאות מוצר המקור עשויות להשתקף במחירים; מס אישי ועמלות מסחר אינם מחושבים. לא הוחלף מוצר מגודר בסדרה דולרית שאינה מודדת את הגידור.</p><p>זהו צילום נתונים שנבדק ב־18.11.2026, ולא הזנת נתונים חיה.</p>${sources.length?`<ul>${sources.map(s=>`<li><a class="help-source" href="${esc(s.source)}" target="_blank" rel="noopener noreferrer">${esc(s.basis)} ↗</a></li>`).join('')}</ul>`:''}<a class="help-source" href="https://admainnew.morningstar.com/directhelp/Glossary/Risk_and_Rating/Standard_Deviation.htm" target="_blank" rel="noopener noreferrer">הגדרה ושיטת החישוב — Morningstar ↗</a></details>`);
+  showDialog(isFund?`סטיית תקן שנתית · ${fundId}`:'סטיית תקן שנתית',`<p>מדד לתנודתיות ההיסטורית של ${isFund?'הקרן או נכס הייחוס שלה':'התיק'} סביב התשואה הממוצעת. מספר גבוה יותר מצביע על תנודות חדות יותר — בעליות וגם בירידות.</p>${r.valid?`<dl class="portfolio-detail-list"><div><dt>סטיית התקן השנתית</dt><dd><bdi>${riskPct(r.annualized)}</bdi></dd></div><div><dt>תקופת המדידה</dt><dd><bdi>${r.start} – ${r.end}</bdi></dd></div><div><dt>תצפיות חודשיות</dt><dd>${r.months}</dd></div><div><dt>מטבע החישוב</dt><dd>שקלים</dd></div></dl>${r.shortHistory?'<p>החישוב כאן מבוסס על פחות מ־15 שנות היסטוריה. תאריכי התקופה ומספר החודשים מופיעים למעלה.</p>':''}${r.lagMonths?'<p>תאריך הסיום מוקדם מהחודש האחרון במאגר, בגלל חוסר בנתוני סוף חודש. לא הושלמו מחירים משוערים.</p>':''}`:`<p>${esc(volatilityReason(r))}. אין מציגים נתון חסר כ־0%.</p>`}<p>זה אינו שיעור התשואה הצפוי ואינו גבול להפסד אפשרי.</p><details class="portfolio-risk-method"><summary>איך חישבנו?</summary><p>מחשבים את תשואת כל נכס בכל חודש, מחברים לפי משקלי התיק, ואז מחשבים סטיית תקן מדגמית ומכפילים בשורש 12. כך החישוב כולל את הקשרים בין הנכסים. מניחים איזון חודשי למשקלים שהזנת, ללא הפקדות ומשיכות.</p><p>לכל קרן מוצגת סטיית תקן לפי ההיסטוריה הזמינה לה. בחישוב התיק מודדים מחדש את סטיות התקן של הנכסים על אותם חודשים, ומשלבים את משקליהם ואת המתאמים ביניהם. לכן סטיית התקן של התיק אינה ממוצע פשוט של סטיות התקן של הקרנות.</p>${!isFund&&r.valid?`<h3>הנכסים בתקופת המדידה של התיק</h3><dl class="portfolio-detail-list">${r.sources.map(asset=>`<div><dt><bdi>${esc(asset.id)}</bdi> · ${number(asset.weight*100)}%</dt><dd>${riskPct(asset.annualized)}</dd></div>`).join('')}</dl>`:''}<p>משתמשים בעד 15 שנים (180 חודשים רציפים), ולפחות 12 חודשים. התקופה מוגבלת להיסטוריה המשותפת של הנכסים בתיק. בהשוואה ישירה נדרשת אותה תקופה לשני התיקים. שינוי התשואה המשוערת או הגדרתה כ־0% אינו מוציא את הנכס מחישוב התנודתיות.</p><p>הנתונים הומרו לשקלים ממחירים מתואמים כשזמינים, או ממחירי נכס/מדד מייצג. הוצאות מוצר המקור עשויות להשתקף במחירים; מס אישי ועמלות מסחר אינם מחושבים. לא הוחלף מוצר מגודר בסדרה דולרית שאינה מודדת את הגידור.</p><p>זהו צילום נתונים שנבדק ב־18.11.2026, ולא הזנת נתונים חיה.</p>${sources.length?`<ul>${sources.map(s=>`<li><a class="help-source" href="${esc(s.source)}" target="_blank" rel="noopener noreferrer">${esc(s.basis)} ↗</a></li>`).join('')}</ul>`:''}<a class="help-source" href="https://admainnew.morningstar.com/directhelp/Glossary/Risk_and_Rating/Standard_Deviation.htm" target="_blank" rel="noopener noreferrer">הגדרה ושיטת החישוב — Morningstar ↗</a></details>`);
  }
  function scoreCopy(value){return esc(value).replace(/[0-9]+(?:[.,][0-9]+)?(?:[\/–−-][0-9]+(?:[.,][0-9]+)?)?%?/g,n=>`<bdi dir="ltr">${n}</bdi>`);}
  function scoreStatus(score){
@@ -308,7 +314,8 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  function holdingFacts(id){
   const fund=funds.find(f=>f.id===id);if(!fund)return '';
   const cost=annualFundCost(fund),facts=[['עלות שנתית',cost===null?'עלות לא ידועה':pct(cost)],['מדינה',esc(domicileLabel(fund.domicile))],['דיבידנדים',esc(fund.distribution)],['שיטת עקיבה',esc(fund.replication?.replace(' · Swap',''))]].filter(([,value])=>value);
-  return `<p class="portfolio-holding-facts" aria-label="מאפייני הקרן">${facts.map(([label,value])=>`<span><span class="sr-only">${label}: </span>${value}</span>`).join('')}</p>`;
+  const risk=riskForFund(id);
+  return `<p class="portfolio-holding-facts" aria-label="מאפייני הקרן">${facts.map(([label,value])=>`<span><span class="sr-only">${label}: </span>${value}</span>`).join('')}</p><div class="portfolio-holding-risk"><span>סטיית תקן שנתית ${volatilityButton('fund-'+id)}</span><strong>${risk.valid?riskPct(risk.annualized):'—'}</strong><small>${volatilityPeriod(risk)}</small></div>`;
  }
  function renderBuilder(){
   find('#portfolioView').innerHTML=`<div class="portfolio-editor-head"><label class="field portfolio-name-field">שם התיק<input id="portfolioName" type="text" maxlength="60" value="${esc(state.name)}" autocomplete="off"></label></div><div class="portfolio-holdings-heading"><h2>הקרנות בתיק</h2><div class="portfolio-holding-tools" role="group" aria-label="פעולות בתיק"><button type="button" class="text-button" data-open-library>＋ הוספת קרן</button><button type="button" class="text-button" data-reset-returns aria-label="שחזור תשואות היסטוריות"><span class="portfolio-action-full">שחזור תשואות היסטוריות</span><span class="portfolio-action-short" aria-hidden="true">שחזור תשואות</span></button>${state.rows.length>1?'<button type="button" class="text-button" data-equalize>חלוקה שווה</button>':''}</div></div><div class="portfolio-holdings">${state.rows.length?state.rows.map((row,i)=>`<article class="portfolio-holding" data-holding="${esc(row.id)}"><div class="portfolio-holding-title"><button type="button" class="portfolio-holding-link" data-fund-details="${esc(row.id)}"><bdi class="portfolio-holding-symbol">${esc(row.id)}</bdi><span class="portfolio-holding-separator" aria-hidden="true">–</span><span class="portfolio-holding-name" dir="auto">${esc(funds.find(f=>f.id===row.id)?.name||'מידע חסר')}</span></button><button type="button" class="portfolio-remove" data-remove-fund="${esc(row.id)}" aria-label="הסרת ${esc(row.id)}">✕</button></div>${holdingFacts(row.id)}<div class="portfolio-holding-values"><label class="field">משקל בתיק<span class="input-wrap"><input id="portfolio-row-${i}" type="text" inputmode="decimal" dir="ltr" data-row-value="${esc(row.id)}" value="${esc(row.value)}" aria-label="משקל ${esc(row.id)} בתיק"><span class="unit">%</span></span><input type="range" class="value-slider portfolio-allocation-slider" data-row-slider="${esc(row.id)}" min="0" max="100" step=".5" value="${Number(row.value)||0}" aria-label="גרירת הקצאת ${esc(row.id)}"></label>${returnInput(row)}<button type="button" class="portfolio-fill" data-fill-fund="${esc(row.id)}" aria-label="השלמת יתרה ל־${esc(row.id)}">השלמה</button></div><p class="portfolio-row-error" data-row-error="${esc(row.id)}" hidden>הזינו אחוז בין 0 ל־100.</p></article>`).join(''):'<div class="portfolio-empty"><h3>בחרו את הקרנות שירכיבו את התיק</h3><button type="button" class="primary" data-open-library>לבחירת קרנות</button></div>'}</div>${previousState?'<button type="button" class="text-button" data-undo-template>ביטול החלפת התיק</button>':''}`;
@@ -357,9 +364,12 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
  function fundDetails(id){
   const f=funds.find(x=>x.id===id);
   if(!f){showDialog(id,'<p>הנייר אינו נמצא בספרייה הנוכחית. העלות שלו לא נכללת כאפס בחישוב.</p>');return;}
+  const risk=riskForFund(id);
   const fields=[
    ['מדד / נכס ייחוס',f.benchmark],
    ['CAGR היסטורי',Number.isFinite(f.history?.rate)?number(f.history.rate)+'% ('+number(f.history.years,1)+' שנים)':'לא אומת'],
+   ['סטיית תקן שנתית',risk.valid?number(risk.annualized,2)+'% · '+volatilityDuration(risk.months)+' · בשקלים':'אין נתונים מתאימים'],
+   ['תקופת מדידת סטיית התקן',risk.valid?risk.start+' – '+risk.end:'לא זמינה'],
    ['דמי ניהול שנתיים',f.fee===null?'טרם אומתו':number(f.fee,4)+'%'],
    ['עלות שנתית נוספת',Number.isFinite(f.extraFee)?number(f.extraFee,4)+'%':f.extraFee===null?(f.feeStatus==='reference'?'לא פורטה במקור':'טרם אומתה'):'לא צוינה בנפרד'],
    ['מספר נייר / סימול',f.id],['ISIN',f.isin||'לא אומת'],['מנפיק',f.issuer],
@@ -378,6 +388,7 @@ export function mountPortfolio(root,{initial,onChange=()=>{},onSave=()=>{},getSa
    ${notes.length?`<div class="portfolio-fund-detail-notes">${notes.map(note=>`<p>${esc(note)}</p>`).join('')}</div>`:''}
    <div class="portfolio-fund-detail-actions" role="group" aria-label="מקורות ומידע נוסף על הקרן">
     <button type="button" class="text-button" data-return-source="${f.id}">מקור ותקופת התשואה ההיסטורית</button>
+    <button type="button" class="text-button" data-portfolio-risk="fund-${esc(f.id)}">מקור וחישוב סטיית התקן</button>
     <a class="help-source" href="${esc(f.source)}" target="_blank" rel="noopener noreferrer">מקור רשמי ופרטי המוצר ↗</a>
     ${f.referenceSource?`<a class="help-source" href="${esc(f.referenceSource)}" target="_blank" rel="noopener noreferrer">${f.feeStatus==='reference'?'זינוק · מקור דמי הניהול':'זינוק · מקור ההשוואה'} ↗</a>`:''}
    </div>`,{fund:f});
