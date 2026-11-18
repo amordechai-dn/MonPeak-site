@@ -555,3 +555,35 @@ header .header-actions #savedToggle #saveCount{display:block;width:auto;min-widt
 .portfolio-scores-title{justify-content:flex-start;align-items:center}
 .portfolio-scores-title .portfolio-score-source{display:inline-flex;align-items:center;min-height:40px;padding:8px 12px;border:1px solid #d5d9c9;border-radius:9px;background:#eeede5;color:#5d604f;font-size:14px;font-weight:500;line-height:1.5;text-decoration:none;transition:background .15s,border-color .15s,box-shadow .15s}
 .portfolio-scores-title .portfolio-score-source:hover{background:#eee7d3;border-color:#b49b60;color:#66552e;box-shadow:0 0 0 3px #b49b6028;text-shadow:none}
+
+/* Scoring guide: readable text width, fixed header and optional detail. */
+.portfolio-dialog.is-scoring-method{width:min(1040px,calc(100vw - 64px));max-width:1040px;max-height:calc(100dvh - 48px);padding:28px;color:#20251f}
+.portfolio-dialog.is-scoring-method[open]{display:flex;flex-direction:column;overflow:hidden}
+.is-scoring-method .dialog-head{position:relative;top:auto;flex-shrink:0;align-items:center;padding-bottom:18px}
+.is-scoring-method #portfolioDialogBody{min-height:0;margin-top:20px;padding-inline-end:10px;overflow-y:auto;overscroll-behavior:contain;font-size:17px;line-height:1.85}
+.is-scoring-method .rating-method-intro p{margin:0 0 8px;max-width:72ch;font-size:17px}
+.rating-method-section{display:grid;grid-template-columns:140px minmax(0,1fr);gap:24px;padding:24px 0;border-bottom:1px solid #e5e3d9}
+.rating-method-section>h3{margin:0;font-size:21px;font-weight:600;line-height:1.5}
+.rating-method-content{min-width:0;max-width:72ch}
+.is-scoring-method .rating-method-content>p{margin:0 0 12px;font-size:17px}
+.is-scoring-method ul{margin:8px 0 16px;padding-inline-start:22px}
+.is-scoring-method li{margin:5px 0;overflow-wrap:anywhere}
+.is-scoring-method .rating-method-example{padding-inline-start:12px;border-inline-start:3px solid #b49b60;color:#5d604f}
+.is-scoring-method .rating-method-example strong{color:#20251f;font-weight:600}
+.rating-method-details>summary,.rating-method-sources>summary{min-height:44px;cursor:pointer;color:#79612e;font-size:16px;transition:color .15s,text-shadow .15s}
+.rating-method-details>summary:hover,.rating-method-sources>summary:hover{color:#5f491c;text-shadow:0 0 8px #b49b6030}
+.rating-method-detail-grid{display:grid;gap:14px;margin-top:8px}
+.rating-method-detail h4{margin:0 0 8px;font-size:17px;font-weight:600}
+.rating-method-detail table{width:100%;border-collapse:collapse;font-size:16px;line-height:1.6;margin-bottom:8px}
+.rating-method-detail th,.rating-method-detail td{padding:9px 12px;text-align:start;border-bottom:1px solid #e5e3d9;overflow-wrap:anywhere}
+.rating-method-detail th{font-weight:600;background:#eeede5}
+.rating-method-detail th:last-child,.rating-method-detail td:last-child{width:110px;text-align:center}
+.rating-method-comparison{padding:22px 0 8px;max-width:84ch}
+.rating-method-comparison h3{font-size:21px;margin:0 0 12px}
+.is-scoring-method .rating-method-comparison p{font-size:17px}
+.rating-method-sources{border-top:1px solid #e5e3d9;padding-top:18px}
+.rating-method-source-meta{display:block;font-size:14px;color:#73766d;margin-top:3px}
+@media(max-width:760px){.portfolio-dialog.is-scoring-method{width:calc(100vw - 24px);max-height:calc(100dvh - 24px);padding:20px}.is-scoring-method #portfolioDialogBody{font-size:16px;margin-top:16px;padding-inline-end:6px}.rating-method-section{grid-template-columns:minmax(0,1fr);gap:10px;padding:20px 0}.is-scoring-method .rating-method-content>p,.is-scoring-method .rating-method-intro p,.is-scoring-method .rating-method-comparison p{font-size:16px}.rating-method-detail th,.rating-method-detail td{padding:8px}.rating-method-detail th:last-child,.rating-method-detail td:last-child{width:80px}}
+.rating-method-detail-grid{grid-template-columns:minmax(0,1fr)}
+.rating-method-detail{min-width:0}
+.rating-method-detail table{table-layout:fixed;max-width:100%}
