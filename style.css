@@ -430,3 +430,8 @@ header .header-actions #savedToggle #saveCount{display:block;width:auto;min-widt
 .portfolio-score>.portfolio-rating-status{grid-column:1/-1}
 .portfolio-mini-scores .portfolio-rating-status{font-size:13px;color:#75613a}
 .comparison-score-explanations .portfolio-rating-status{margin-top:8px}
+
+#portfolioFundGrid:not(.is-card-view) .portfolio-catalog-table thead th:nth-child(2),
+#portfolioFundGrid:not(.is-card-view) .portfolio-official-cell,
+#portfolioFundGrid:not(.is-card-view) .portfolio-official-cell>span,
+#portfolioFundGrid:not(.is-card-view) .portfolio-official-cell small{text-align:center}
